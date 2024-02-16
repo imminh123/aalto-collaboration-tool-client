@@ -1,0 +1,40 @@
+/* src/components/ChatScreen/ChatScreen.css */
+.chat-screen {
+    background-color: #36393f;
+    color: #dcddde;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .chat-screen-header {
+    background-color: #2f3136;
+    padding: 20px;
+    border-bottom: 2px solid #202225;
+  }
+  
+  .message-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  
+  .message {
+    margin-bottom: 20px;
+  }
+  
+  .chat-input-container {
+    padding: 20px;
+    background-color: #40444b;
+    border-top: 2px solid #202225;
+  }
+  
+  .chat-input {
+    width: 100%;
+    padding: 10px;
+    background-color: #202225;
+    color: white;
+    border: none;
+    border-radius: 5px;
+  }
+  

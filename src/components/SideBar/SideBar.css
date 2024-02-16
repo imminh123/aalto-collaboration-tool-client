@@ -1,0 +1,31 @@
+/* src/components/Sidebar/Sidebar.css */
+.sidebar {
+    background-color: #2f3136;
+    color: white;
+    width: 240px;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  
+  .sidebar h2 {
+    color: #b9bbbe;
+    font-size: 16px;
+    margin-top: 20px;
+  }
+  
+  .channel-item, .direct-message-item {
+    padding: 5px 10px;
+    margin: 5px 0;
+    cursor: pointer;
+  }
+  
+  .channel-item:hover, .direct-message-item:hover {
+    background-color: #393c43;
+  }
+  
+  .channel-item.active, .direct-message-item.active {
+    background-color: #4f545c;
+  }
+  

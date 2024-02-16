@@ -1,0 +1,39 @@
+.App {
+  display: flex;
+  height: 100vh;
+}
+
+
+.app {
+  display: flex;
+  justify-content: space-between;
+}
+
+.chat-container {
+  flex-grow: 1;
+}
+
+.message-list {
+  overflow-y: auto;
+  height: 400px;
+}
+
+.chat-input input {
+  width: 80%;
+  padding: 10px;
+}
+
+.chat-input button {
+  width: 20%;
+  padding: 10px;
+}
+
+.online-users-list {
+  width: 200px;
+  margin-left: 20px;
+}
+
+.online-users-list ul {
+  list-style: none;
+  padding: 0;
+}

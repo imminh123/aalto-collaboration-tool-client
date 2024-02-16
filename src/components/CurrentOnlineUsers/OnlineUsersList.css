@@ -1,0 +1,13 @@
+/* src/components/OnlineUsersList/OnlineUsersList.css */
+.online-users-list {
+    background-color: #2f3136;
+    width: 240px;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  
+  .online-user-item {
+    padding: 10px;
+    border-bottom: 1px solid #202225;
+  }
+  
