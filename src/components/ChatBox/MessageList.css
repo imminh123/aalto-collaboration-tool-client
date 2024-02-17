@@ -1,0 +1,7 @@
+.message_list{
+    overflow-y: auto;
+}
+
+.message{
+    margin: 1rem;
+}

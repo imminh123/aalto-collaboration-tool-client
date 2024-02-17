@@ -10,14 +10,26 @@ const OnlineUsersList = () => {
     // More users...
   ];
 
+  const offlineUsers = [
+    'User4',
+    'User5',
+  ];
+
   return (
-    <div className="OnlineUsersList">
-      <h2>Online Users</h2>
-      <ul>
+    <div className="online-users-list">
+      <div className='online_user_header' >Online Users</div>
         {onlineUsers.map((user) => (
-          <li key={user}>{user}</li>
+          <div className={`user_row`} key={user}>
+            <span className={`user_circle user_green_circle`}></span>
+            <div>{user}</div>
+          </div>
         ))}
-      </ul>
+      {offlineUsers.map((user) => (
+        <div className={`user_row`} key={user}>
+          <span className={`user_circle user_circle_empty`}></span>
+          <div>{user}</div>
+        </div>
+      ))}
     </div>
   );
 };

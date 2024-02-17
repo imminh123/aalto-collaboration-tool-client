@@ -11,6 +11,9 @@ interface Props {
 const Sidebar: React.FC<Props> = ({ channels, currentChannelId, onChannelSelect }) => {
   return (
     <div className="sidebar">
+      <div className='direct-messages'>
+        <h2>Direct Message</h2>
+      </div>
       <div className="channels">
         <h2>Channels</h2>
         {channels.filter(c => c.type === 'channel').map(channel => (
@@ -24,7 +27,7 @@ const Sidebar: React.FC<Props> = ({ channels, currentChannelId, onChannelSelect 
         ))}
       </div>
       <div className="direct-messages">
-        <h2>Direct Messages</h2>
+        <h2>Participants</h2>
         {channels.filter(c => c.type === 'direct_message').map(channel => (
           <div 
             key={channel.id} 

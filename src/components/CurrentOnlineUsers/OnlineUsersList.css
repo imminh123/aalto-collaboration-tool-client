@@ -1,13 +1,42 @@
 /* src/components/OnlineUsersList/OnlineUsersList.css */
+
 .online-users-list {
     background-color: #2f3136;
     width: 240px;
     height: 100vh;
     overflow-y: auto;
+    color: white;
+    /* margin: 1rem; */
+  }
+
+  .online_user_header{
+    margin: 1rem;
   }
   
-  .online-user-item {
-    padding: 10px;
-    border-bottom: 1px solid #202225;
+  .user_row{
+    margin: 0.5rem;
   }
   
+  .user_green_circle {
+    background-color: greenyellow;
+  }
+
+  .user_circle{
+    min-width: 8px;
+    height: 8px;
+    margin: 0 5px;
+    display: block;
+    border-radius: 50%;
+  }
+
+  .user_circle_empty{
+    background-color: transparent;
+    border-color: hsl(0deg 0% 50%);
+    background: white;
+  }
+
+  .user_row{
+    display: flex;
+    flex-direction: row ;
+    align-items: center;
+  }

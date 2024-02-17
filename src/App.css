@@ -28,12 +28,8 @@
   padding: 10px;
 }
 
-.online-users-list {
-  width: 200px;
-  margin-left: 20px;
-}
 
-.online-users-list ul {
-  list-style: none;
-  padding: 0;
+
+.body{
+  font-family: "Source Sans 3 VF",sans-serif;
 }
