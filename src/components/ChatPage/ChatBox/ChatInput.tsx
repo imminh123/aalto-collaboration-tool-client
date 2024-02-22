@@ -5,7 +5,8 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { useSelector, useDispatch } from 'react-redux';
 import { setMessages } from '../../../redux/chatReducer';
 import { v4 as uuidv4 } from 'uuid';
-
+import { FileUploader } from "react-drag-drop-files";
+import { get } from 'http';
 
 const ChatInput = () => {
   const [input, setInput] = useState('');
@@ -17,42 +18,99 @@ const ChatInput = () => {
   const receiverName = useSelector((state:any) => state.channel.directUserName);
   const receiverId = useSelector((state:any) => state.channel.directUserId);
   const socketUrl = `ws://localhost:8000/ws/${userId}`;
-  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
+  const [file, setFile] = useState(null);
+  const fileTypes = ["JPEG", "PNG", "GIF", "PDF"];
+  const { sendMessage, lastMessage, readyState, getWebSocket } = useWebSocket(socketUrl, {
     shouldReconnect: (closeEvent) => true,
   });
 
-  const sendTestMessage = useCallback((userInput: string) => {
-    sendMessage(JSON.stringify({
-      messageId: uuidv4(),
-      senderId: userId,
-      senderName: userName,
-      content: userInput,
-      channel: channelName,
-      receiverName: receiverName,
-      receiverId: receiverId,
-      chatMode: chatMode
-    }));
-  }, [sendMessage,channelName]);
+  
+  const handleFile = (file:any) => {
+    file[0].sender = userId;
+    setFile(file);
+  };
+  
+
+  const sendTextMessage = useCallback((userInput: string) => {
+    if(file !== null){
+      sendMessage(JSON.stringify({
+        sender: userId,
+        receiverId: receiverId,
+        receiverName: receiverName,
+        channel: channelName,
+        fileName: (file[0] as any).name,
+        messageType: 2,
+        chatMode: 2,
+      }));
+      sendMessage(file[0]);
+    }
+    else{
+      sendMessage(JSON.stringify({
+        messageId: uuidv4(),
+        senderId: userId,
+        senderName: userName,
+        content: userInput,
+        channel: channelName,
+        receiverName: receiverName,
+        receiverId: receiverId,
+        chatMode: chatMode,
+        messageType: 1,      
+      }))
+    }
+  }, [sendMessage,channelName, file, receiverName, receiverId, chatMode]);
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if(e.key === 'Enter'){
-      sendTestMessage(input);
+      sendTextMessage(input);
       setInput('');
     }
   }
 
   const handleSendMessage = () => {
-      sendTestMessage(input);
-      setInput('');
+    sendTextMessage(input);
+    setInput('');
+  }
+
+  const handleSendFile = () => {
+      sendTextMessage("");
+      setFile(null);
   }
 
   useEffect(() => {
-    dispatch(setMessages(lastMessage?.data));
+    if(!!lastMessage?.data && !!lastMessage && (lastMessage?.data instanceof ArrayBuffer || lastMessage?.data instanceof Blob)){
+      const convertedPdfFile = new File([(lastMessage as any)?.data], "tmp.pdf", { type: "application/pdf" });
+      let blob = new Blob([convertedPdfFile], { type: convertedPdfFile.type });
+      let url = URL.createObjectURL(blob);
+      let a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = convertedPdfFile.name;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setFile(null);
+    }
+    else if(typeof lastMessage?.data === 'string'){
+      dispatch(setMessages(lastMessage?.data));
+    }
   }, [lastMessage?.data]);
+
 
 
   return (
     <div className="chat_section">
+      <div>
+        <FileUploader
+            multiple={true}
+            handleChange={handleFile}
+            name="file"
+            types={fileTypes}
+          />
+          <button className='send_button' 
+          onClick={handleSendFile}
+          ><AiOutlineSend/></button>
+      </div>
       <div className='chat_input'>
         <input
           className='chat_input_field'

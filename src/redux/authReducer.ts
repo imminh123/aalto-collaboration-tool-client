@@ -58,7 +58,7 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
       }
 
       const data = await response.json(); // Parse the response as JSON
-      console.log('data', data);
+  
       return data; // Return the response data
 
       } catch (error) {
@@ -85,14 +85,12 @@ export const loginSlice = createSlice({
     extraReducers: (builder) => {
         builder
           .addCase(fetchUser.fulfilled, (state, action) => {
-            console.log('action', action);
             state.username = action.payload.username;
             state.user_id = action.payload.user_id;
           })
           .addCase(fetchUser.rejected, (state, action) => {
           })
           .addCase(register.fulfilled, (state, action) => {
-            console.log('action', action);
             state.username = action.payload.username;
             state.user_id = action.payload.user_id;
           })
