@@ -29,3 +29,22 @@
     background-color: #4f545c;
   }
   
+  .channels-header{
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .channels-header .send_button{
+    color: white;
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .add-channel-modal{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
