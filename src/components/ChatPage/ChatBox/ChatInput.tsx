@@ -23,7 +23,6 @@ const ChatInput = () => {
   const { sendMessage, lastMessage, readyState, getWebSocket } = useWebSocket(socketUrl, {
     shouldReconnect: (closeEvent) => true,
   });
-
   
   const handleFile = (file:any) => {
     file[0].sender = userId;
