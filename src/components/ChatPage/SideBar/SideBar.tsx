@@ -9,7 +9,7 @@ import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import { persistor } from '../../../index';
 import { useNavigate } from 'react-router-dom';
-
+// import { useHistory } from 'react-router-dom';
 interface Props {
 }
 
@@ -45,9 +45,11 @@ const Sidebar: React.FC<Props> = () => {
     handleClose();
   } 
 
-  const handleLogout = () => {
-    persistor.purge()
-    navigate('/login');
+  const handleLogout = async () => {
+    const pr = await persistor.purge()
+    setTimeout(() => {
+      navigate('/login');
+    }, 100);
   }
 
   return (
