@@ -23,17 +23,23 @@ const Login: React.FC = () => {
     event.preventDefault();
     const loginPromise = dispatch(fetchUser({username, password}) as any);
     loginPromise
-    .then((res: any) => {  
-    })
-    .finally(()=>{
+    .then((res: any) => { 
+      if(res.payload.detail === "Incorrect username or password"){
+        window.alert("Incorrect username or password");
+        return;
+      }
+      else{
         navigate('/chat');
+      }
     })
   };
 
   const handleRegister = (event: { preventDefault: () => void; }) => {
     event.preventDefault();
-    dispatch(register({username, password}) as any);
-    navigate('/chat');
+    const registerPromise = dispatch(register({username, password}) as any);
+    registerPromise.then((res: any) => {
+      navigate('/chat');
+    });
   };
 
 
