@@ -14,7 +14,17 @@
     font-size: 16px;
     margin-top: 20px;
   }
-  
+
+  .channel-item{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .channel-item button{
+    border: none;
+  }
+
   .channel-item, .direct-message-item {
     padding: 5px 10px;
     margin: 5px 0;

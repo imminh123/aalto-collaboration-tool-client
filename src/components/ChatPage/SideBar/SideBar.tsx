@@ -11,7 +11,8 @@ import { persistor } from '../../../index';
 import { useNavigate } from 'react-router-dom';
 // import { useHistory } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { Checkbox } from '@mui/material';
+import { Button, Checkbox } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Props {
 }
@@ -124,15 +125,18 @@ const Sidebar: React.FC<Props> = () => {
               <FaPlus/>
             </button>
           </h2>
-          {channels && channels.map((channel:any)=> (
-            <div 
-              key={channel.channelId} 
-              className={`channel-item ${channel === currentChannel ? 'active' : ''}`}
-              onClick={() => handleSelectChannel(channel)}
-            >
-              # {channel.channelName}
-            </div>
-          ))}
+                    {channels && channels.map((channel:any)=> (
+                      <div 
+                        key={channel.channelId} 
+                        className={`channel-item ${channel === currentChannel ? 'active' : ''}`}
+                        onClick={() => handleSelectChannel(channel)}
+                      >
+                        # {channel.channelName}
+                        <Button variant="outlined" startIcon={<DeleteIcon />}>
+                          Delete
+                        </Button>
+                      </div>
+                    ))}
         </div>
         <div className='logout'>
           <button

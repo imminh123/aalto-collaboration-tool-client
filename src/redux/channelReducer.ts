@@ -45,7 +45,6 @@ export const channelSlice = createSlice({
             state.channelList = action.payload;
         },
         setNewChannelDetail: (state, action) => {
-            console.log("newChannelDetail", action.payload);
             if(action.payload === null){
                 state.newChannelDetail = null;
             }
