@@ -7,6 +7,7 @@ import { setMessages } from '../../../redux/chatReducer';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUploader } from "react-drag-drop-files";
 import { get } from 'http';
+import { setOnlineUsers } from '../../../redux/channelReducer';
 
 const ChatInput = () => {
   const [input, setInput] = useState('');
@@ -76,6 +77,7 @@ const ChatInput = () => {
   }
 
   useEffect(() => {
+    console.log("ON", lastMessage?.data);
     if(!!lastMessage?.data && !!lastMessage && (lastMessage?.data instanceof ArrayBuffer || lastMessage?.data instanceof Blob)){
       const convertedPdfFile = new File([(lastMessage as any)?.data], "tmp.pdf", { type: "application/pdf" });
       let blob = new Blob([convertedPdfFile], { type: convertedPdfFile.type });
@@ -91,6 +93,10 @@ const ChatInput = () => {
       setFile(null);
     }
     else if(typeof lastMessage?.data === 'string'){
+      let messageObject = JSON.parse(lastMessage?.data);
+      if (messageObject.messageType === 0){
+        dispatch(setOnlineUsers(messageObject.data))
+      }
       dispatch(setMessages(lastMessage?.data));
     }
   }, [lastMessage?.data]);

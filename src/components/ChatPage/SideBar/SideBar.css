@@ -48,3 +48,8 @@
     flex-direction: row;
     justify-content: space-between;
   }
+
+  .logout{
+    position: absolute;
+    bottom: 10px;
+  }

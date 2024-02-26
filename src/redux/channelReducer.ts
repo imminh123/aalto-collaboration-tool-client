@@ -4,6 +4,7 @@ import { act } from "react-dom/test-utils";
 
 interface channelState {
     channelList: string[],
+    onlineUsers: string[],
     channel: string,
     mode: number,
     directUserName: string,
@@ -12,6 +13,7 @@ interface channelState {
 
 const initialState: channelState = {
     channelList: ['general','important','random'],
+    onlineUsers: [],
     channel: 'general',
     mode: 2,
     directUserName: '',
@@ -36,11 +38,14 @@ export const channelSlice = createSlice({
             state.directUserId = action.payload.user_id;
             state.mode = 1;
             state.channel = '';
+        },
+        setOnlineUsers: (state, action) => {
+            state.onlineUsers = action.payload;
         }
     },
 });
 
-export const {setChannelDetail, addNewChannel, setReceiverDetail} = channelSlice.actions;
+export const {setChannelDetail, addNewChannel, setReceiverDetail, setOnlineUsers} = channelSlice.actions;
 export const selectChannelName = (state:any) => state.channel.channel;
 export const selectDirectUserName = (state:any) => state.channel.directUserName;
 export const selectDirectUserId = (state:any) => state.channel.directUserId;

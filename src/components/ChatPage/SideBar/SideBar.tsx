@@ -7,7 +7,8 @@ import { selectChannelName, addNewChannel } from "../../../redux/channelReducer"
 import { FaPlus } from "react-icons/fa";
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
-
+import { persistor } from '../../../index';
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
 }
@@ -32,7 +33,7 @@ const Sidebar: React.FC<Props> = () => {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const [newChannel, setNewChannel] = React.useState('');
-  
+  const navigate = useNavigate();
   
 
   const handleSelectChannel = (selectedChannel:string) =>{
@@ -43,6 +44,11 @@ const Sidebar: React.FC<Props> = () => {
     dispatch(addNewChannel(newChannel));
     handleClose();
   } 
+
+  const handleLogout = () => {
+    persistor.purge()
+    navigate('/login');
+  }
 
   return (
     <>
@@ -83,6 +89,11 @@ const Sidebar: React.FC<Props> = () => {
               # {channel}
             </div>
           ))}
+        </div>
+        <div className='logout'>
+          <button
+            onClick={handleLogout}
+          >Logout</button>
         </div>
       </div>
     </>

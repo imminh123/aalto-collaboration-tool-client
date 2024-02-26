@@ -12,7 +12,7 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
-let persistor = persistStore(store);
+export const persistor = persistStore(store);
 
 root.render(
   <React.StrictMode>
