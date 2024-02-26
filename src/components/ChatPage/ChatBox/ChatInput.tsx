@@ -3,7 +3,7 @@ import './ChatInput.css'; // Create and import CSS for ChatInput
 import { AiOutlineSend } from "react-icons/ai";
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { useSelector, useDispatch } from 'react-redux';
-import { setMessages } from '../../../redux/chatReducer';
+import { setMessages, setMessagesHistory } from '../../../redux/chatReducer';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUploader } from "react-drag-drop-files";
 import { get } from 'http';
@@ -77,7 +77,6 @@ const ChatInput = () => {
   }
 
   useEffect(() => {
-    console.log("ON", lastMessage?.data);
     if(!!lastMessage?.data && !!lastMessage && (lastMessage?.data instanceof ArrayBuffer || lastMessage?.data instanceof Blob)){
       const convertedPdfFile = new File([(lastMessage as any)?.data], "tmp.pdf", { type: "application/pdf" });
       let blob = new Blob([convertedPdfFile], { type: convertedPdfFile.type });
@@ -94,11 +93,19 @@ const ChatInput = () => {
     }
     else if(typeof lastMessage?.data === 'string'){
       let messageObject = JSON.parse(lastMessage?.data);
-      console.log("MESSAGE", lastMessage?.data);
-      if (messageObject.messageType === 0){
+      if (messageObject.loginType === 0){
+        // loginType = 0: rerender online user list
         dispatch(setOnlineUsers(messageObject.onlineUserList))
       }
-      dispatch(setMessages(lastMessage?.data));
+      else if (messageObject.loginType === 1)
+      {
+        // loginType = 1: load all messages history to new login user
+        dispatch(setMessagesHistory(messageObject.messagesHistory))
+      }
+      else{
+        dispatch(setMessages(lastMessage?.data));
+      }
+      
     }
   }, [lastMessage?.data]);
 
