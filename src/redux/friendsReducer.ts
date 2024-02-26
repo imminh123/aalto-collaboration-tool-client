@@ -23,11 +23,15 @@ export const fetchAllUsers = createAsyncThunk(
   );
 
     export interface ListUserInitialState {
-        users: [];  
+        users: [];
+        onlineUsers: string[],
+        offlineUsers: string[],
     }
 
     const initialState: ListUserInitialState = {
         users: [],
+        onlineUsers: [],
+        offlineUsers: [],
     }
 
     export const listUserSlice = createSlice({
@@ -36,6 +40,12 @@ export const fetchAllUsers = createAsyncThunk(
         reducers: {
             setUsers: (state, action: PayloadAction<any>) => {
                 state.users = action.payload;
+            },
+            setOnlineUsers: (state, action) => {
+              console.log('action.payload', action.payload);
+              state.onlineUsers = state.users.filter((user:any) => action.payload.includes(user.user_id));
+              console.log('state.onlineUsers', state.onlineUsers);
+              state.offlineUsers = state.users.filter((user:any) => !action.payload.includes(user.id));
             }
         },
         extraReducers: (builder) => {
@@ -45,5 +55,8 @@ export const fetchAllUsers = createAsyncThunk(
         }
     });
 
-    export const { setUsers } = listUserSlice.actions;
+    export const { setUsers, setOnlineUsers } = listUserSlice.actions;
+    export const selectUsers = (state:any) => state.users.users;
+    export const selectOnlineUsers = (state:any) => state.users.onlineUsers;
+    export const selectOfflineUsers = (state:any) => state.users.offlineUsers;
     export default listUserSlice.reducer;

@@ -7,7 +7,7 @@ import { setMessages } from '../../../redux/chatReducer';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUploader } from "react-drag-drop-files";
 import { get } from 'http';
-import { setOnlineUsers } from '../../../redux/channelReducer';
+import { setOnlineUsers } from '../../../redux/friendsReducer';
 
 const ChatInput = () => {
   const [input, setInput] = useState('');
@@ -93,11 +93,11 @@ const ChatInput = () => {
       setFile(null);
     }
     else if(typeof lastMessage?.data === 'string'){
-      // let messageObject = JSON.parse(lastMessage?.data);
+      let messageObject = JSON.parse(lastMessage?.data);
       console.log("MESSAGE", lastMessage?.data);
-      // if (messageObject.data.messageType === 0){
-        // dispatch(setOnlineUsers(messageObject.data))
-      // }
+      if (messageObject.messageType === 0){
+        dispatch(setOnlineUsers(messageObject.onlineUserList))
+      }
       dispatch(setMessages(lastMessage?.data));
     }
   }, [lastMessage?.data]);
