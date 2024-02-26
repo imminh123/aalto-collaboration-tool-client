@@ -93,10 +93,11 @@ const ChatInput = () => {
       setFile(null);
     }
     else if(typeof lastMessage?.data === 'string'){
-      let messageObject = JSON.parse(lastMessage?.data);
-      if (messageObject.messageType === 0){
-        dispatch(setOnlineUsers(messageObject.data))
-      }
+      // let messageObject = JSON.parse(lastMessage?.data);
+      console.log("MESSAGE", lastMessage?.data);
+      // if (messageObject.data.messageType === 0){
+        // dispatch(setOnlineUsers(messageObject.data))
+      // }
       dispatch(setMessages(lastMessage?.data));
     }
   }, [lastMessage?.data]);
@@ -105,16 +106,17 @@ const ChatInput = () => {
 
   return (
     <div className="chat_section">
-      <div>
+      <div className='file_input'>
         <FileUploader
             multiple={true}
             handleChange={handleFile}
             name="file"
             types={fileTypes}
+            className='file_input_field'
           />
-          <button className='send_button' 
+          {file && <button className='send_button' 
           onClick={handleSendFile}
-          ><AiOutlineSend/></button>
+          >Up Load File</button>}
       </div>
       <div className='chat_input'>
         <input

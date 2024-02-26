@@ -18,3 +18,11 @@
 .send_button{
     width: 10%;
 }
+
+.file_input{
+    display: flex;
+}
+
+.file_input_field{
+    width: 100%;
+}
