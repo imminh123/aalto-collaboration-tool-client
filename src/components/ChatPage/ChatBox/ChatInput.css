@@ -11,6 +11,10 @@
 
 }
 
+.chat_input > *{
+    height: 2rem;
+}
+
 .chat_input_field{
     width: 80%;
 }

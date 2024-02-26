@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FileUploader } from "react-drag-drop-files";
 import { get } from 'http';
 import { setOnlineUsers } from '../../../redux/friendsReducer';
-import { setChannelHistory, setNewChannelDetail } from '../../../redux/channelReducer';
+import { setChannelAfterDelete, setChannelHistory, setNewChannelAction } from '../../../redux/channelReducer';
 
 const ChatInput = () => {
   const [input, setInput] = useState('');
@@ -19,7 +19,7 @@ const ChatInput = () => {
   const channelName = useSelector((state:any) => state.channel.channel);
   const receiverName = useSelector((state:any) => state.channel.directUserName);
   const receiverId = useSelector((state:any) => state.channel.directUserId);
-  const newChannelDetail = useSelector((state:any) => state.channel.newChannelDetail);
+  const newChannelAction = useSelector((state:any) => state.channel.newChannelAction);
 
   const socketUrl = `ws://localhost:8000/ws/${userId}`;
   const [file, setFile] = useState(null);
@@ -80,14 +80,22 @@ const ChatInput = () => {
   }
 
   useEffect(() => {
-    if(!!newChannelDetail){
-      sendMessage(JSON.stringify({
-        newChannel: newChannelDetail,
-        messageType: 4
-      }) as any);
+    if(!!newChannelAction){
+      if(newChannelAction.channelAction === 'add'){
+        sendMessage(JSON.stringify({
+          newChannel: newChannelAction,
+          messageType: 4
+        }) as any);
+      }
+      else if(newChannelAction.channelAction === 'delete'){
+        sendMessage(JSON.stringify({
+          deleteChannel: newChannelAction,
+          messageType: 5
+        }) as any);
+      }
     }
-    dispatch(setNewChannelDetail(null));
-  },[newChannelDetail])
+    dispatch(setNewChannelAction(null));
+  },[newChannelAction])
 
   useEffect(() => {
     if(!!lastMessage?.data && !!lastMessage && (lastMessage?.data instanceof ArrayBuffer || lastMessage?.data instanceof Blob)){
@@ -116,8 +124,12 @@ const ChatInput = () => {
         dispatch(setMessagesHistory(messageObject.messagesHistory))
         dispatch(setChannelHistory(messageObject.channelHistory))
       }
+      // loginType = 2: load channel history to new login user
       else if (messageObject.loginType === 2){
         dispatch(setChannelHistory(messageObject.channelHistory))
+      }
+      else if(messageObject.loginType === 3){
+        dispatch(setChannelAfterDelete(messageObject.deletedChannel));
       }
       else{
         dispatch(setMessages(lastMessage?.data));

@@ -5,7 +5,7 @@ import { act } from "react-dom/test-utils";
 
 interface channelState {
     channelList: any[],
-    newChannelDetail: any,
+    newChannelAction: any,
     channel: string,
     mode: number,
     directUserName: string,
@@ -14,7 +14,7 @@ interface channelState {
 
 const initialState: channelState = {
     channelList: [],
-    newChannelDetail: null,
+    newChannelAction: null,
     channel: 'General',
     mode: 2, // 1 for direct message, 2 for channel, 3 for edit file, 4 for create new channel
     directUserName: '',
@@ -44,23 +44,37 @@ export const channelSlice = createSlice({
             state.channel = action.payload[0];
             state.channelList = action.payload;
         },
-        setNewChannelDetail: (state, action) => {
+        setNewChannelAction: (state, action) => {
             if(action.payload === null){
-                state.newChannelDetail = null;
+                state.newChannelAction = null;
             }
             else{
-                let newChannelDetail = {} as any;
-                newChannelDetail['channelName'] = action.payload['channelName'];
-                newChannelDetail['channelId'] = action.payload['channelId'];
-                newChannelDetail['channelType'] = action.payload['channelType'];
-                newChannelDetail['channelMembers'] = action.payload['channelMembers'];
-                state.newChannelDetail = newChannelDetail
+                let channelAction = action.payload['channelAction'];
+                if(channelAction === 'add'){
+                    let newChannelDetail = {} as any;
+                    newChannelDetail['channelName'] = action.payload['channelName'];
+                    newChannelDetail['channelId'] = action.payload['channelId'];
+                    newChannelDetail['channelType'] = action.payload['channelType'];
+                    newChannelDetail['channelMembers'] = action.payload['channelMembers'];
+                    newChannelDetail['channelAction'] = action.payload['channelAction'];
+                    state.newChannelAction = newChannelDetail
+                }
+                else if(channelAction === 'delete'){
+                    let delChannelDetail = {} as any;
+                    delChannelDetail['channelId'] = action.payload['channelId'];
+                    delChannelDetail['channelAction'] = action.payload['channelAction'];
+                    state.newChannelAction = delChannelDetail;
+                }
             }
         },
+        setChannelAfterDelete: (state, action) => {
+            state.channelList = state.channelList.filter((channel) => channel.channelId !== action.payload);
+            state.channel = state.channelList[0];
+        }
     },
 });
 
-export const {setChannelDetail, addNewChannel, setReceiverDetail, setChannelHistory, setNewChannelDetail} = channelSlice.actions;
+export const {setChannelDetail, addNewChannel, setReceiverDetail, setChannelHistory, setNewChannelAction, setChannelAfterDelete} = channelSlice.actions;
 export const selectChannelName = (state:any) => state.channel.channel;
 export const selectDirectUserName = (state:any) => state.channel.directUserName;
 export const selectDirectUserId = (state:any) => state.channel.directUserId;

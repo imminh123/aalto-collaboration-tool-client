@@ -3,7 +3,7 @@ import { IChannel } from '../../../types';
 import './SideBar.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectChannelList, setChannelDetail } from '../../../redux/channelReducer';
-import { selectChannelName, addNewChannel, setNewChannelDetail } from "../../../redux/channelReducer";
+import { selectChannelName, addNewChannel, setNewChannelAction } from "../../../redux/channelReducer";
 import { FaPlus } from "react-icons/fa";
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
@@ -39,6 +39,7 @@ const Sidebar: React.FC<Props> = () => {
   const [newChannel, setNewChannel] = React.useState('');
   const navigate = useNavigate();
   const user = useSelector((state:any) => state.users.users);
+  const userName = useSelector((state:any) => state.login.username);
   const label = { inputProps: { 'aria-label': 'Checkbox demo' } };
   const [newChannelUsers, setNewChannelUsers] = React.useState([] as any);
 
@@ -52,16 +53,24 @@ const Sidebar: React.FC<Props> = () => {
   }
 
   const handleAddChannel = () => {
-    console.log('newChannel', newChannelUsers);
     let newChannelDetail = {
       "channelId": uuidv4(),
       "channelName": newChannel,
       "channelType": "private",
       "channelMembers": newChannelUsers,
+      "channelAction": "add"
     }
-    dispatch(setNewChannelDetail(newChannelDetail));
+    dispatch(setNewChannelAction(newChannelDetail));
     handleClose();
   } 
+  
+  const handleDeleteChannel = (channelId:string) => {
+    let deleteChannelDetail = {
+      "channelId": channelId,
+      "channelAction": "delete"
+    }
+    dispatch(setNewChannelAction(deleteChannelDetail));
+  }
 
   const handleCheckboxChange = (userId:string, isChecked:boolean) => {
     setNewChannelUsers((prev:any) => {
@@ -113,6 +122,10 @@ const Sidebar: React.FC<Props> = () => {
       </Modal>
       <div className="sidebar">
         <div className='direct-messages'>
+          <h3> You are login as {userName}
+          </h3>
+        </div>
+        <div className='direct-messages'>
           <h2>Direct Message
           </h2>
         </div>
@@ -132,7 +145,11 @@ const Sidebar: React.FC<Props> = () => {
                         onClick={() => handleSelectChannel(channel)}
                       >
                         # {channel.channelName}
-                        <Button variant="outlined" startIcon={<DeleteIcon />}>
+                        <Button
+                          variant="outlined" 
+                          startIcon={<DeleteIcon />}
+                          onClick = {() => handleDeleteChannel(channel.channelId)}
+                        >
                           Delete
                         </Button>
                       </div>
