@@ -42,10 +42,8 @@ export const fetchAllUsers = createAsyncThunk(
                 state.users = action.payload;
             },
             setOnlineUsers: (state, action) => {
-              console.log('action.payload', action.payload);
               state.onlineUsers = state.users.filter((user:any) => action.payload.includes(user.user_id));
-              console.log('state.onlineUsers', state.onlineUsers);
-              state.offlineUsers = state.users.filter((user:any) => !action.payload.includes(user.id));
+              state.offlineUsers = state.users.filter((user:any) => !action.payload.includes(user.user_id));
             }
         },
         extraReducers: (builder) => {

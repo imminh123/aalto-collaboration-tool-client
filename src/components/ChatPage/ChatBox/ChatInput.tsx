@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FileUploader } from "react-drag-drop-files";
 import { get } from 'http';
 import { setOnlineUsers } from '../../../redux/friendsReducer';
+import { setChannelHistory, setNewChannelDetail } from '../../../redux/channelReducer';
 
 const ChatInput = () => {
   const [input, setInput] = useState('');
@@ -18,6 +19,8 @@ const ChatInput = () => {
   const channelName = useSelector((state:any) => state.channel.channel);
   const receiverName = useSelector((state:any) => state.channel.directUserName);
   const receiverId = useSelector((state:any) => state.channel.directUserId);
+  const newChannelDetail = useSelector((state:any) => state.channel.newChannelDetail);
+
   const socketUrl = `ws://localhost:8000/ws/${userId}`;
   const [file, setFile] = useState(null);
   const fileTypes = ["JPEG", "PNG", "GIF", "PDF"];
@@ -39,7 +42,7 @@ const ChatInput = () => {
         receiverName: receiverName,
         channel: channelName,
         fileName: (file[0] as any).name,
-        messageType: 2,
+        messageType: 2, //MessageType 1 for sending text, 2 for sending file
         chatMode: 2,
       }));
       sendMessage(file[0]);
@@ -54,7 +57,7 @@ const ChatInput = () => {
         receiverName: receiverName,
         receiverId: receiverId,
         chatMode: chatMode,
-        messageType: 1,      
+        messageType: 1,  //MessageType 1 for sending text, 2 for sending file
       }))
     }
   }, [sendMessage,channelName, file, receiverName, receiverId, chatMode]);
@@ -75,6 +78,16 @@ const ChatInput = () => {
       sendTextMessage("");
       setFile(null);
   }
+
+  useEffect(() => {
+    if(!!newChannelDetail){
+      sendMessage(JSON.stringify({
+        newChannel: newChannelDetail,
+        messageType: 4
+      }) as any);
+    }
+    dispatch(setNewChannelDetail(null));
+  },[newChannelDetail])
 
   useEffect(() => {
     if(!!lastMessage?.data && !!lastMessage && (lastMessage?.data instanceof ArrayBuffer || lastMessage?.data instanceof Blob)){
@@ -99,8 +112,12 @@ const ChatInput = () => {
       }
       else if (messageObject.loginType === 1)
       {
-        // loginType = 1: load all messages history to new login user
+        // loginType = 1: load all messages history and channel history to new login user
         dispatch(setMessagesHistory(messageObject.messagesHistory))
+        dispatch(setChannelHistory(messageObject.channelHistory))
+      }
+      else if (messageObject.loginType === 2){
+        dispatch(setChannelHistory(messageObject.channelHistory))
       }
       else{
         dispatch(setMessages(lastMessage?.data));

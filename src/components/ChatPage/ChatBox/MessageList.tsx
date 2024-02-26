@@ -37,7 +37,7 @@ const MessageList = () => {
       {chatMode === 2 && 
         <>
           <div className="message_list">
-            {messages && messages.filter((m:any) => m.channel === currentChannel && m.chatMode === 2).map((message:any) => (
+            {messages && messages.filter((m:any) => m.channel.channelId === currentChannel.channelId && m.chatMode === 2).map((message:any) => (
               <div key={message.messageId} className="message">
                 <strong 
                 >{message.senderName}</strong>: {message.content}

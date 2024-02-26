@@ -3,13 +3,16 @@ import { IChannel } from '../../../types';
 import './SideBar.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectChannelList, setChannelDetail } from '../../../redux/channelReducer';
-import { selectChannelName, addNewChannel } from "../../../redux/channelReducer";
+import { selectChannelName, addNewChannel, setNewChannelDetail } from "../../../redux/channelReducer";
 import { FaPlus } from "react-icons/fa";
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import { persistor } from '../../../index';
 import { useNavigate } from 'react-router-dom';
 // import { useHistory } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
+import { Checkbox } from '@mui/material';
+
 interface Props {
 }
 
@@ -31,19 +34,43 @@ const Sidebar: React.FC<Props> = () => {
   const currentChannel = useSelector(selectChannelName);
   const [open, setOpen] = React.useState(false);
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  
   const [newChannel, setNewChannel] = React.useState('');
   const navigate = useNavigate();
-  
+  const user = useSelector((state:any) => state.users.users);
+  const label = { inputProps: { 'aria-label': 'Checkbox demo' } };
+  const [newChannelUsers, setNewChannelUsers] = React.useState([] as any);
 
   const handleSelectChannel = (selectedChannel:string) =>{
       dispatch(setChannelDetail(selectedChannel));
   }
 
+  const handleClose = () => {
+    setOpen(false);
+    setNewChannelUsers([]);
+  }
+
   const handleAddChannel = () => {
-    dispatch(addNewChannel(newChannel));
+    console.log('newChannel', newChannelUsers);
+    let newChannelDetail = {
+      "channelId": uuidv4(),
+      "channelName": newChannel,
+      "channelType": "private",
+      "channelMembers": newChannelUsers,
+    }
+    dispatch(setNewChannelDetail(newChannelDetail));
     handleClose();
   } 
+
+  const handleCheckboxChange = (userId:string, isChecked:boolean) => {
+    setNewChannelUsers((prev:any) => {
+      if (isChecked) {
+        return prev.includes(userId) ? prev : [...prev, userId];
+      } else {
+        return prev.filter((id:string) => id !== userId);
+      }
+    });
+  };
 
   const handleLogout = async () => {
     const pr = await persistor.purge()
@@ -62,10 +89,25 @@ const Sidebar: React.FC<Props> = () => {
           <h2>New channel name</h2>
           <div className='add-channel-modal'>
             <input
+              className='add-channel-input'
               onChange={(e) => setNewChannel(e.target.value)}
             />
             <button onClick={handleAddChannel}>Add</button>
           </div>
+          <div>
+              {
+                user.map((u:any) => (
+                  <div key={u.user_id}>
+                    <Checkbox 
+                      checked={newChannelUsers.includes(u.user_id)}
+                      onChange={(e) => handleCheckboxChange(u.user_id, e.target.checked)}
+                      {...label} 
+                    />
+                    {u.username}
+                  </div>
+                ))
+              }
+            </div>
         </Box>
       </Modal>
       <div className="sidebar">
@@ -82,13 +124,13 @@ const Sidebar: React.FC<Props> = () => {
               <FaPlus/>
             </button>
           </h2>
-          {channels.map((channel:any)=> (
+          {channels && channels.map((channel:any)=> (
             <div 
-              key={channel} 
+              key={channel.channelId} 
               className={`channel-item ${channel === currentChannel ? 'active' : ''}`}
               onClick={() => handleSelectChannel(channel)}
             >
-              # {channel}
+              # {channel.channelName}
             </div>
           ))}
         </div>
