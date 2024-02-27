@@ -6,7 +6,7 @@ import {
 import './App.css';
 import Login from './components/Login/Login';
 import ChatPage from './components/ChatPage/ChatPage';
-
+import Colab from './components/Colab/Colab';
 
 
 
@@ -17,8 +17,9 @@ const App: React.FC = () => {
     <Router>
       <div>
         <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/colab/:id" element={<Colab />} />
       </Routes>
       </div>
     </Router>

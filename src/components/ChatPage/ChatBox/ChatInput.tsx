@@ -9,6 +9,7 @@ import { FileUploader } from "react-drag-drop-files";
 import { get } from 'http';
 import { setOnlineUsers } from '../../../redux/friendsReducer';
 import { setChannelAfterDelete, setChannelHistory, setNewChannelAction } from '../../../redux/channelReducer';
+import { useWebSocketContext } from '../../../hooks';
 
 const ChatInput = () => {
   const [input, setInput] = useState('');
@@ -21,18 +22,17 @@ const ChatInput = () => {
   const receiverId = useSelector((state:any) => state.channel.directUserId);
   const newChannelAction = useSelector((state:any) => state.channel.newChannelAction);
 
-  const socketUrl = `ws://localhost:8000/ws/${userId}`;
+  // const socketUrl = `ws://localhost:8000/ws/${userId}`;
   const [file, setFile] = useState(null);
   const fileTypes = ["JPEG", "PNG", "GIF", "PDF"];
-  const { sendMessage, lastMessage, readyState, getWebSocket } = useWebSocket(socketUrl, {
-    shouldReconnect: (closeEvent) => true,
-  });
+  const webSocketContext:any = useWebSocketContext();
+  const { sendMessage, lastMessage, readyState, getWebSocket } = webSocketContext;
   
   const handleFile = (file:any) => {
     file[0].sender = userId;
     setFile(file);
   };
-  
+
 
   const sendTextMessage = useCallback((userInput: string) => {
     if(file !== null){

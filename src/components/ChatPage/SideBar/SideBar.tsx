@@ -42,6 +42,17 @@ const Sidebar: React.FC<Props> = () => {
   const userName = useSelector((state:any) => state.login.username);
   const label = { inputProps: { 'aria-label': 'Checkbox demo' } };
   const [newChannelUsers, setNewChannelUsers] = React.useState([] as any);
+  // const [files,setFiles] = React.useState([] as any)
+  const files = [
+    {
+      "fileName": "SAMPLE FILE",
+      "fileId": "1234",
+    },
+    {
+      "fileName": "SAMPLE FILE 2",
+      "fileId": "12345",
+    }
+  ]
 
   const handleSelectChannel = (selectedChannel:string) =>{
       dispatch(setChannelDetail(selectedChannel));
@@ -85,8 +96,17 @@ const Sidebar: React.FC<Props> = () => {
   const handleLogout = async () => {
     const pr = await persistor.purge()
     setTimeout(() => {
-      navigate('/login');
+      navigate('/');
     }, 100);
+  }
+
+  const handleOpenFile = (fileId: string) => {
+    // console.log('open file');
+    navigate(`/colab/${fileId}`);
+  }
+
+  const handleCreateNewFile = () => {
+    console.log('create new file');
   }
 
   return (
@@ -138,22 +158,39 @@ const Sidebar: React.FC<Props> = () => {
               <FaPlus/>
             </button>
           </h2>
-                    {channels && channels.map((channel:any)=> (
-                      <div 
-                        key={channel.channelId} 
-                        className={`channel-item ${channel === currentChannel ? 'active' : ''}`}
-                        onClick={() => handleSelectChannel(channel)}
-                      >
-                        # {channel.channelName}
-                        <Button
-                          variant="outlined" 
-                          startIcon={<DeleteIcon />}
-                          onClick = {() => handleDeleteChannel(channel.channelId)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    ))}
+          {channels && channels.map((channel:any)=> (
+            <div 
+              key={channel.channelId} 
+              className={`channel-item ${channel === currentChannel ? 'active' : ''}`}
+              onClick={() => handleSelectChannel(channel)}
+            >
+              # {channel.channelName}
+              <Button
+                variant="outlined" 
+                startIcon={<DeleteIcon />}
+                onClick = {() => handleDeleteChannel(channel.channelId)}
+              >
+                Delete
+              </Button>
+            </div>
+          ))}
+          <h2 className='channels-header'>
+            File Channels
+            <button className='send_button' 
+              onClick={handleCreateNewFile}
+            >
+              <FaPlus/>
+            </button>
+          </h2>
+          {files && files.map((file:any)=> (
+            <div
+              key={file.fileId}
+              className='channel-item'
+              onClick={() => handleOpenFile(file.fileId)}
+            >
+              {file.fileName}               
+            </div>
+          ))}
         </div>
         <div className='logout'>
           <button
