@@ -33,7 +33,6 @@ const ChatInput = () => {
     setFile(file);
   };
 
-
   const sendTextMessage = useCallback((userInput: string) => {
     if(file !== null){
       sendMessage(JSON.stringify({
