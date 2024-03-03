@@ -1,27 +1,25 @@
-import React from "react";
-import { IChannel } from "../../../types";
-import "./SideBar.css";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  selectChannelList,
-  setChannelDetail,
-} from "../../../redux/channelReducer";
-import {
-  selectChannelName,
-  addNewChannel,
-  setNewChannelAction,
-} from "../../../redux/channelReducer";
-import { FaPlus } from "react-icons/fa";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
+import React, { useEffect, useState } from "react";
+import { FaPlus } from "react-icons/fa";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
 import { persistor } from "../../../index";
-import { useNavigate } from "react-router-dom";
+import {
+  selectChannelList,
+  selectChannelName,
+  setChannelDetail,
+  setNewChannelAction,
+} from "../../../redux/channelReducer";
+import "./SideBar.css";
 // import { useHistory } from 'react-router-dom';
-import { v4 as uuidv4 } from "uuid";
-import { Button, Checkbox } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { useDocs } from "../../../hooks/useDocs";
-import { fetchApi, fetchDocsApi } from "../../../plugin/fetchApi";
+import { Button, Checkbox } from "@mui/material";
+import { v4 as uuidv4 } from "uuid";
+import { fetchDocsApi } from "../../../plugin/fetchApi";
+import "quill/dist/quill.bubble.css";
+import Sharedb from "sharedb/lib/client";
+import richText from "rich-text";
 
 interface Props {}
 
@@ -37,7 +35,17 @@ const style = {
   p: 4,
 };
 
+// Registering the rich text type to make sharedb work
+// with our quill editor
+Sharedb.types.register(richText.type);
+
+// Connecting to our socket server
+const socket = new WebSocket("ws://127.0.0.1:8080");
+const connection = new Sharedb.Connection(socket);
+
 const Sidebar: React.FC<Props> = () => {
+  const { id } = useParams();
+  const doc = connection.get("documents", id);
   const dispatch = useDispatch();
   const channels = useSelector(selectChannelList);
   const currentChannel = useSelector(selectChannelName);
@@ -45,7 +53,6 @@ const Sidebar: React.FC<Props> = () => {
   const [openDocs, setOpenDocs] = React.useState(false);
   const handleOpen = () => setOpen(true);
 
-  const { documents } = useDocs();
   const [newChannel, setNewChannel] = React.useState("");
   const [newDocs, setNewDocs] = React.useState("");
   const navigate = useNavigate();
@@ -53,6 +60,7 @@ const Sidebar: React.FC<Props> = () => {
   const userName = useSelector((state: any) => state.login.username);
   const label = { inputProps: { "aria-label": "Checkbox demo" } };
   const [newChannelUsers, setNewChannelUsers] = React.useState([] as any);
+  const [documents, setDocuments] = useState<string[]>([]);
 
   const handleSelectChannel = (selectedChannel: string) => {
     dispatch(setChannelDetail(selectedChannel));
@@ -102,10 +110,10 @@ const Sidebar: React.FC<Props> = () => {
 
   const handleOpenFile = (fileId: string) => {
     // console.log('open file');
-    navigate(`/docs/${fileId}`);
+    window.open(`/docs/${fileId}`, '_blank');
   };
 
-  const handleCreateNewFile =() => {
+  const handleCreateNewFile = () => {
     fetchDocsApi(`/docs/${newDocs}`, {
       method: "POST",
       headers: {
@@ -113,6 +121,24 @@ const Sidebar: React.FC<Props> = () => {
       },
     }).then(() => setOpenDocs(false));
   };
+
+  const updateDocuments = (query: any) => {
+    if (query.results) {
+      setDocuments(query.results.map((item: any) => item.id));
+    }
+  };
+
+  useEffect(() => {
+    const query = connection.createSubscribeQuery("documents", {});
+
+    query.on("ready", () => {
+      updateDocuments(query);
+    });
+
+    query.on("changed", () => {
+      updateDocuments(query);
+    });
+  }, []);
 
   return (
     <>
