@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Route, Routes } from "react-router";
 import {
-  BrowserRouter as Router, Link
+  BrowserRouter as Router
 } from "react-router-dom";
 import './App.css';
-import Login from './components/Login/Login';
 import ChatPage from './components/ChatPage/ChatPage';
 import Colab from './components/Colab/Colab';
+import Login from './components/Login/Login';
 
 
 
@@ -19,7 +19,7 @@ const App: React.FC = () => {
         <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/chat" element={<ChatPage />} />
-        <Route path="/colab/:id" element={<Colab />} />
+        <Route path="/docs/:id" element={<Colab />} />
       </Routes>
       </div>
     </Router>

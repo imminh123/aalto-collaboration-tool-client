@@ -8,7 +8,6 @@ const WebSocketContext = createContext(null);
 export const useWebSocketContext = () => useContext(WebSocketContext);
 
 export const WebSocketProvider = ({ children }) => {
-
   const userId = useSelector((state) => state.login.user_id);
   const socketUrl = `ws://localhost:8000/ws/${userId}`;
   const { sendMessage, lastMessage, readyState, getWebSocket } = useWebSocket(
