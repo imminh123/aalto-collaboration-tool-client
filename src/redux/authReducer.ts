@@ -1,5 +1,7 @@
 // Part 1
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
+import secureStorage from 'react-secure-storage';
+import { generateKeyPair, exportPublicKey } from '../helpers/cryptography'
   export const fetchUser = createAsyncThunk(
       "user/login",
       async ({ username, password }: { username: string, password: string }, thunkAPI) => {
@@ -39,6 +41,7 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
   "user/register",
   async ({ username, password }: { username: string, password: string }, thunkAPI) => {
       try {
+        const keyPair = await generateKeyPair();
       const response = await fetch("http://localhost:8001/register/", { // Ensure you use 'http://' or 'https://' in your URL.
           method: 'POST', // Set the method to POST
           headers: {
@@ -48,8 +51,10 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
           body: JSON.stringify({ // Stringify your payload and pass it as the body
           username: username,
           password: password,
+          publicKey: await exportPublicKey(keyPair)
           }),
       });
+
 
       if (!response.ok) {
           // If the response is not 2xx, throw an error
@@ -58,11 +63,13 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
       }
 
       const data = await response.json(); // Parse the response as JSON
-  
+      secureStorage.setItem(`${data.user_id}:keyPair`, keyPair);
+      // console.table(secureStorage.getItem(`${data.user_id}:keyPair`));
       return data; // Return the response data
 
       } catch (error) {
       // If there's an error, return a rejected action with an error message
+      // console.log(error);
       return thunkAPI.rejectWithValue("Failed to fetch user");
       }
   }
