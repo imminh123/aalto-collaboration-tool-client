@@ -4,6 +4,8 @@ import { AiOutlineSend } from "react-icons/ai";
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { useSelector, useDispatch } from 'react-redux';
 import { setMessages, setMessagesHistory } from '../../../redux/chatReducer';
+import secureStorage from 'react-secure-storage';
+import { encryptData } from '../../../helpers/cryptography';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUploader } from "react-drag-drop-files";
 import { get } from 'http';
@@ -20,6 +22,7 @@ const ChatInput = () => {
   const channelName = useSelector((state:any) => state.channel.channel);
   const receiverName = useSelector((state:any) => state.channel.directUserName);
   const receiverId = useSelector((state:any) => state.channel.directUserId);
+  const receiverPK = useSelector((state:any) => state.channel.directUserPK);
   const newChannelAction = useSelector((state:any) => state.channel.newChannelAction);
 
   // const socketUrl = `ws://localhost:8000/ws/${userId}`;
@@ -33,7 +36,7 @@ const ChatInput = () => {
     setFile(file);
   };
 
-  const sendTextMessage = useCallback((userInput: string) => {
+  const sendTextMessage = useCallback(async (userInput: string) => {
     if(file !== null){
       sendMessage(JSON.stringify({
         sender: userId,
@@ -47,28 +50,40 @@ const ChatInput = () => {
       sendMessage(file[0]);
     }
     else{
-      sendMessage(JSON.stringify({
+      const senderKeyPair: any  = secureStorage.getItem(`${userId}:keyPair`) as object;
+      const encryptedMessageSender = await encryptData(userInput, senderKeyPair.publicKey);
+      const message = {
         messageId: uuidv4(),
         senderId: userId,
         senderName: userName,
-        content: userInput,
+        content_sender: await encryptData(userInput, senderKeyPair.publicKey), // Encrypt with PK for sender
+        content_reciever: await encryptData(userInput, receiverPK), // Encrypt with PK for reciever
         channel: channelName,
         receiverName: receiverName,
         receiverId: receiverId,
         chatMode: chatMode,
         messageType: 1,  //MessageType 1 for sending text, 2 for sending file
-      }))
+      };
+      // if(!secureStorage.getItem(`${userId}:${receiverId}`)) {
+      //   // Send request to server to create a key
+      //   message.generateKey = true;
+      // }
+      sendMessage(JSON.stringify(message))
     }
   }, [sendMessage,channelName, file, receiverName, receiverId, chatMode]);
 
-  const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleEnter = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if(e.key === 'Enter'){
+      // const messageToSend = await encryptMessage(input, secureStorage.getItem(`${userId}:${receiverId}`));
       sendTextMessage(input);
       setInput('');
     }
   }
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
+    // if(!secureStorage.getItem(`${userId}:${receiverId}`)) {
+    //   // Send request to server to create a key
+    // }
     sendTextMessage(input);
     setInput('');
   }
