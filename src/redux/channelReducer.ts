@@ -7,6 +7,7 @@ interface channelState {
     mode: number,
     directUserName: string,
     directUserId: string,
+    directUserPK: string
 }
 
 const initialState: channelState = {
@@ -16,6 +17,7 @@ const initialState: channelState = {
     mode: 2, // 1 for direct message, 2 for channel, 3 for edit file, 4 for create new channel
     directUserName: '',
     directUserId: '',
+    directUserPK: ''
 }
 
 
@@ -36,6 +38,7 @@ export const channelSlice = createSlice({
             state.directUserId = action.payload.user_id;
             state.mode = 1;
             state.channel = '';
+            state.directUserPK = action.payload.public_key
         },
         setChannelHistory : (state, action) => {
             state.channel = action.payload[0];
@@ -75,6 +78,7 @@ export const {setChannelDetail, addNewChannel, setReceiverDetail, setChannelHist
 export const selectChannelName = (state:any) => state.channel.channel;
 export const selectDirectUserName = (state:any) => state.channel.directUserName;
 export const selectDirectUserId = (state:any) => state.channel.directUserId;
+export const selectDirectUserPK = (state:any) => state.channel.directUserPK;
 export const selectChatMode = (state:any) => state.channel.mode;
 export const selectChannelList = (state:any) => state.channel.channelList;
 export const selectNewChannelDetail = (state:any) => state.channel.newChannelDetail;
