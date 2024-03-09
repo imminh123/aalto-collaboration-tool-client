@@ -165,31 +165,82 @@ export  async function decryptData(encryptedData: string, privateKey: string) {
     return bytes.buffer;
   }
 
+  export async function encryptMessage(message: string, secretKey: string) {
+    const encodedMessage = new TextEncoder().encode(message);
+    const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Initialization vector
+    const encryptedContent = await window.crypto.subtle.encrypt(
+      {
+        name: "AES-GCM",
+        iv: iv, // Use the generated IV
+      },
+      await importAESKey(secretKey),
+      encodedMessage
+    );
+    // Combine the IV with the encrypted data. The IV is needed for decryption.
+    const ivAndEncryptedContent = new Uint8Array(iv.length + encryptedContent.byteLength);
+    ivAndEncryptedContent.set(iv);
+    ivAndEncryptedContent.set(new Uint8Array(encryptedContent), iv.length);
+  
+    return arrayBufferToBase64(ivAndEncryptedContent.buffer);
+  }
+  
+  export async function decryptMessage(ivAndEncryptedContent: string, secretKey: string) {
+    const arrayBuffer = base64ToArrayBuffer(ivAndEncryptedContent);
+    const iv = arrayBuffer.slice(0, 12); // Extract the IV from the beginning
+    const encryptedContent = arrayBuffer.slice(12); // The rest is the encrypted data
+  
+    const decryptedContent = await window.crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv: iv, // Use the extracted IV
+      },
+      await importAESKey(secretKey),
+      encryptedContent
+    );
+    const decodedMessage = new TextDecoder().decode(decryptedContent);
+    return decodedMessage;
+  }
+  
 
-// export  async function encryptMessage(message: string, secretKey: CryptoKey) {
-//     const encodedMessage = new TextEncoder().encode(message);
-//     // Assuming secretKey is imported and usable here
-//     const encryptedContent = await window.crypto.subtle.encrypt(
-//       {
-//         name: "AES-GCM",
-//         iv: window.crypto.getRandomValues(new Uint8Array(12)), // Initialization vector
-//       },
-//       secretKey,
-//       encodedMessage
-//     );
-//     return encryptedContent;
-//   }
+  export async function generateAESKey() {
+    const secretKey = await window.crypto.subtle.generateKey(
+      {
+        name: "AES-GCM",
+        length: 256, // Can be 128, 192, or 256 bits
+      },
+      true, // whether the key is extractable (i.e., can be used in exportKey)
+      ["encrypt", "decrypt"] // can use the generated key for these operations
+    );
   
-// export  async function decryptMessage(encryptedContent: BufferSource, secretKey: CryptoKey) {
-//     const decryptedContent = await window.crypto.subtle.decrypt(
-//       {
-//         name: "AES-GCM",
-//         iv: window.crypto.getRandomValues(new Uint8Array(12)), // The same IV as used in encryption
-//       },
-//       secretKey,
-//       encryptedContent
-//     );
-//     const decodedMessage = new TextDecoder().decode(decryptedContent);
-//     return decodedMessage;
-//   }
+    // return secretKey;
+    return await exportAESKey(secretKey);
+  }
   
+  async function exportAESKey(key: CryptoKey) {
+    const exportedKey = await window.crypto.subtle.exportKey(
+        "jwk", // JSON Web Key format
+        key
+    );
+    // Convert the exported key to a string to store or share it easily
+    const exportedKeyString = JSON.stringify(exportedKey);
+    return exportedKeyString;
+}
+
+async function importAESKey(exportedKeyString: string) {
+  const keyData = JSON.parse(exportedKeyString);
+  const key = await window.crypto.subtle.importKey(
+      "jwk", // JSON Web Key format
+      keyData,
+      {
+          name: "AES-GCM",
+      },
+      true, // Whether the key is extractable
+      ["encrypt", "decrypt"] // Use cases for this key
+  );
+  return key;
+}
+
+export function findObjectWithProperty<T>(arrayOfObjects: T[], propertyName: string): T | undefined {
+  return arrayOfObjects.find(obj => Object.hasOwnProperty.call(obj, propertyName));
+}
+
