@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import './MessageList.css';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import {useSelector, useDispatch} from 'react-redux';
-import { decryptData } from '../../../helpers/cryptography';
+import { decryptData, decryptMessage, findObjectWithProperty } from '../../../helpers/cryptography';
 import secureStorage from 'react-secure-storage';
 
 
@@ -18,14 +18,29 @@ const MessageList = () => {
 
   async function decryptMessages(messages: any) {
     let messagesToReturn: any = [];
+    let aesKey: string = secureStorage.getItem(`dm_${userId}:${receiverId}`) as string; 
+    // If the user is a reciever and it doesn't have information
+    // about the AES key, and also there is at least one message
+    // in the chat, then decrypt the recieved key, and store it for
+    // the user
+    if(!aesKey && messages.length != 0) {
+      const messageWithKey: any = findObjectWithProperty(messages, "aesKey");
+      console.log(messageWithKey);
+      aesKey = await decryptData(messageWithKey.aesKey, userKey.privateKey);
+      secureStorage.setItem(`dm_${userId}:${receiverId}`, aesKey);
+    }
+
+    // Necesearry data processing and message
+    // decryprion
     // @ts-ignore
-    for (let i = 0; i < messages.length; i++) {
-      messagesToReturn.push({...messages[i]});
-      if(messages[i].receiverId == userId && chatMode == 1) {
-        messagesToReturn[i].content = await decryptData(messages[i].content_reciever, userKey.privateKey);
-      } else if(messages[i].senderId == userId && chatMode == 1) {
-        messagesToReturn[i].content = await decryptData(messages[i].content_sender, userKey.privateKey);
-      }
+    for (let i = 0; i < messages.length; i++) {      
+      messagesToReturn.push({
+        receiverId: messages[i].receiverId, 
+        senderName: messages[i].senderName,
+        senderId: messages[i].senderId,
+        chatMode: messages[i].chatMode,
+        content: await decryptMessage(messages[i].content, aesKey)
+      })
     }
 
     return messagesToReturn;
@@ -34,7 +49,6 @@ const MessageList = () => {
   useEffect(() => {
     decryptMessages(messages).then((data) => {
       setDecryptedMessages(data);
-      console.log(data);
     }).catch((e) => {
       console.log(e)
     })    
