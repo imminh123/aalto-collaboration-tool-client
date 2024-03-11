@@ -16,7 +16,30 @@ const MessageList = () => {
   const directUserName = useSelector((state:any) => state.channel.directUserName);
   const userKey: any  = secureStorage.getItem(`${userId}:keyPair`) as object;
 
-  async function decryptMessages(messages: any) {
+  function filterObjectsByPropertyValue<T>(items: T[], propertyName: keyof T, value: unknown): T[] {
+    return items.filter(item => item[propertyName] === value);
+  }
+
+  function findObjectByProperty<T, K extends keyof T>(items: T[], propertyName: K, propertyValue: T[K]): T | undefined {
+    return items.find(item => item[propertyName] === propertyValue);
+  }
+
+  function filterObjectsByTwoProperties<T>(
+    items: T[],
+    propertyName1: keyof T,
+    value1: unknown,
+    propertyName2: keyof T,
+    value2: unknown
+  ): T[] {
+    return items.filter(item => item[propertyName1] === value1 && item[propertyName2] === value2);
+  }
+  
+  function sortByOldestFirst(items: any): any {
+    // @ts-ignore
+    return items.sort((a, b) => a.timestamp - b.timestamp);
+  }
+  
+  async function decryptDirectMessages(messages: any) {
     let messagesToReturn: any = [];
     let aesKey: string = secureStorage.getItem(`dm_${userId}:${receiverId}`) as string; 
     // If the user is a reciever and it doesn't have information
@@ -25,17 +48,50 @@ const MessageList = () => {
     // the user
     if(!aesKey && messages.length != 0) {
       const messageWithKey: any = findObjectWithProperty(messages, "aesKey");
-      console.log(messageWithKey);
       aesKey = await decryptData(messageWithKey.aesKey, userKey.privateKey);
       secureStorage.setItem(`dm_${userId}:${receiverId}`, aesKey);
     }
 
+    console.log(messages);
+
     // Necesearry data processing and message
-    // decryprion
+    // decryption
     // @ts-ignore
     for (let i = 0; i < messages.length; i++) {      
       messagesToReturn.push({
         receiverId: messages[i].receiverId, 
+        senderName: messages[i].senderName,
+        timestamp: messages[i].timestamp,
+        senderId: messages[i].senderId,
+        chatMode: messages[i].chatMode,
+        content: await decryptMessage(messages[i].content, aesKey)
+      })
+    }
+
+    return sortByOldestFirst(messagesToReturn);
+  }
+
+  async function decryptChannelMessages(messages: any) {
+    let aesKey: string = secureStorage.getItem(`ch_${currentChannel.channelId}`) as string; 
+    if(!aesKey && messages.length != 0) {
+      const messageWithKey: any = findObjectWithProperty(messages, "keys");
+      if(!messageWithKey) {
+        return null;
+      }
+      // @ts-ignore
+      const keyObject = findObjectByProperty(messageWithKey.keys, 'userId', userId);
+      if(!keyObject) return null;
+      // @ts-ignore
+      aesKey = await decryptData(keyObject.enryptedKey, userKey.privateKey);
+      secureStorage.setItem(`ch_${currentChannel.channelId}`, aesKey);
+    }
+
+    let messagesToReturn = [];
+
+    // @ts-ignore
+    for (let i = 0; i < messages.length; i++) {      
+      messagesToReturn.push({ 
+        messageId: messages[i].messageId,
         senderName: messages[i].senderName,
         senderId: messages[i].senderId,
         chatMode: messages[i].chatMode,
@@ -43,15 +99,44 @@ const MessageList = () => {
       })
     }
 
-    return messagesToReturn;
+    return sortByOldestFirst(messagesToReturn);
   }
 
   useEffect(() => {
-    decryptMessages(messages).then((data) => {
-      setDecryptedMessages(data);
-    }).catch((e) => {
-      console.log(e)
-    })    
+    if(chatMode === 1) {
+      const chatMode1Messages = filterObjectsByPropertyValue(messages, 'chatMode', 1);
+      // @ts-ignore
+      console.table([...filterObjectsByTwoProperties(chatMode1Messages, 'receiverId', userId, 'senderId', receiverId), ...filterObjectsByTwoProperties(chatMode1Messages, 'senderId', userId, 'receiverId', receiverId)]);
+
+      // @ts-ignore
+      let messagesThatWeNeedRecieved = filterObjectsByPropertyValue(chatMode1Messages, 'receiverId', userId);
+      // @ts-ignore
+      messagesThatWeNeedRecieved = filterObjectsByPropertyValue(messagesThatWeNeedRecieved, 'senderId', receiverId);
+      // @ts-ignore
+      let messagesThatWeNeedSent = filterObjectsByPropertyValue(chatMode1Messages, 'senderId', userId);
+      // @ts-ignore
+      messagesThatWeNeedSent = filterObjectsByPropertyValue(messagesThatWeNeedSent, 'senderId', receiverId);
+      // @ts-ignore
+      const toBeProcessedMessages = [...filterObjectsByTwoProperties(chatMode1Messages, 'receiverId', userId, 'senderId', receiverId), ...filterObjectsByTwoProperties(chatMode1Messages, 'senderId', userId, 'receiverId', receiverId)]
+      decryptDirectMessages(toBeProcessedMessages).then((data) => {
+        setDecryptedMessages(data);
+        console.log(data);
+      }).catch((e) => {
+        console.warn(e)
+      })    
+    } else if (chatMode === 2) {
+      // Do channel messages decryption
+      const chatMode2Messages = filterObjectsByPropertyValue(messages, 'chatMode', 2);
+      // @ts-ignore
+      const thisChannelMessages = filterObjectsByPropertyValue(chatMode2Messages, 'channel', currentChannel.channelId);
+      decryptChannelMessages(thisChannelMessages).then((data) => {
+        // @ts-ignore
+        setDecryptedMessages(data);
+      })
+      .catch((e) => {
+        console.warn(e);
+      });
+    }
   },[chatMode, currentChannel, messages]);
 
 
@@ -84,7 +169,7 @@ const MessageList = () => {
       {chatMode === 2 && 
         <>
           <div className="message_list">
-            {decryptedMessages && decryptedMessages.filter((m:any) => m.channelId === currentChannel.channelId && m.chatMode === 2).map((message:any) => (
+            {decryptedMessages && decryptedMessages.map((message:any) => (
               <div key={message.messageId} className="message">
                 <strong 
                 >{message.senderName}</strong>: {message.content}
