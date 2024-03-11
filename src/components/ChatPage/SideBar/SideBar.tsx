@@ -20,6 +20,11 @@ import { fetchDocsApi } from "../../../plugin/fetchApi";
 import "quill/dist/quill.bubble.css";
 import Sharedb from "sharedb/lib/client";
 import richText from "rich-text";
+import secureStorage from 'react-secure-storage';
+import { decryptMessage, encryptData, encryptMessage, generateAESKey } from '../../../helpers/cryptography';
+import { useWebSocketContext } from '../../../hooks';
+
+
 
 interface Props {}
 
@@ -56,11 +61,14 @@ const Sidebar: React.FC<Props> = () => {
   const [newChannel, setNewChannel] = React.useState("");
   const [newDocs, setNewDocs] = React.useState("");
   const navigate = useNavigate();
-  const user = useSelector((state: any) => state.users.users);
+  const users = useSelector((state: any) => state.users.users);
   const userName = useSelector((state: any) => state.login.username);
   const label = { inputProps: { "aria-label": "Checkbox demo" } };
   const [newChannelUsers, setNewChannelUsers] = React.useState([] as any);
   const [documents, setDocuments] = useState<string[]>([]);
+  
+  const webSocketContext:any = useWebSocketContext();
+  const { sendMessage } = webSocketContext;
 
   const handleSelectChannel = (selectedChannel: string) => {
     dispatch(setChannelDetail(selectedChannel));
@@ -71,7 +79,26 @@ const Sidebar: React.FC<Props> = () => {
     setNewChannelUsers([]);
   };
 
-  const handleAddChannel = () => {
+  // @ts-ignore
+  const encryptSymmetricKeyForUsers = async (key) => {
+    let usersToEncryptFor = filterUsersByUserIDs(users, newChannelUsers);
+    let encryptedKeys = [];
+    for(let i = 0; i < usersToEncryptFor.length; i++) {
+      encryptedKeys.push({
+        userId: usersToEncryptFor[i].user_id,
+        enryptedKey: await encryptData(key, usersToEncryptFor[i].public_key)
+      });
+    }
+
+    return encryptedKeys;
+  };
+
+  function filterUsersByUserIDs(items: any, uuidsToFilterBy: any): any {
+    // @ts-ignore
+    return items.filter(item => uuidsToFilterBy.includes(item.user_id));
+  }
+
+  const handleAddChannel = async () => {
     let newChannelDetail = {
       channelId: uuidv4(),
       channelName: newChannel,
@@ -79,7 +106,24 @@ const Sidebar: React.FC<Props> = () => {
       channelMembers: newChannelUsers,
       channelAction: "add",
     };
+    // Create a symmetric key, and send initial message
+    // so when the user opens the message, can decrypt the key
+    // with it's own SK, and then can decrypt it
+    const generatedKey = await generateAESKey(); // Uncomment later the line below
+    secureStorage.setItem(`ch_${newChannelDetail.channelId}`, generatedKey);
+    // Send initial message
+    const message = {
+      messageId: uuidv4(),
+      // senderId: userId,
+      senderName: newChannelDetail.channelName,
+      content: await encryptMessage("Tervetuloa!", generatedKey), // Encrypt the symmetric key with reciever's PK
+      channel: newChannelDetail,
+      keys: await encryptSymmetricKeyForUsers(generatedKey),
+      chatMode: 2, 
+    };
+
     dispatch(setNewChannelAction(newChannelDetail));
+    // await sendMessage(JSON.stringify(message));
     handleClose();
   };
 
@@ -153,7 +197,7 @@ const Sidebar: React.FC<Props> = () => {
             <button onClick={handleAddChannel}>Add</button>
           </div>
           <div>
-            {user.map((u: any) => (
+            {users.map((u: any) => (
               <div key={u.user_id}>
                 <Checkbox
                   checked={newChannelUsers.includes(u.user_id)}
