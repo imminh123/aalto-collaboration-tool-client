@@ -29,6 +29,7 @@ import {
 } from "../../../helpers/cryptography";
 import { useWebSocketContext } from "../../../hooks";
 import { generateRandomAvatar, truncateString } from "../../../utils/helper";
+import { UserInterface } from "../../../config/interface";
 
 interface Props {}
 
@@ -53,7 +54,7 @@ const socket = new WebSocket("ws://127.0.0.1:8080");
 const connection = new Sharedb.Connection(socket);
 
 const Sidebar: React.FC<Props> = () => {
-  const { id } = useParams();
+  const { id, userid, mode } = useParams();
   const doc = connection.get("documents", id);
   const dispatch = useDispatch();
   const channels = useSelector(selectChannelList);
@@ -76,6 +77,10 @@ const Sidebar: React.FC<Props> = () => {
 
   const handleSelectChannel = (selectedChannel: string) => {
     dispatch(setChannelDetail(selectedChannel));
+  };
+
+  const handleSelectUser = (user: UserInterface) => {
+    navigate("/chat/direct/" + user.user_id)
   };
 
   const handleClose = () => {
@@ -231,7 +236,7 @@ const Sidebar: React.FC<Props> = () => {
       </Modal>
 
       <aside className="sidebar bg-gray-700">
-        <div className="flex flex-col items-center bg-gray-800 mt-1 w-full  p-4 rounded-lg">
+        <div className="flex flex-col items-center bg-gray-800 mt-1 w-full p-4 rounded-lg">
           <div
             className={`flex items-center justify-center h-16 w-16 bg-pink-200 rounded-full mb-2`}
           >
@@ -245,9 +250,9 @@ const Sidebar: React.FC<Props> = () => {
           <div className="flex flex-col space-y-1 mt-4 -mx-2 overflow-y-auto">
             {users.map((user: any) => (
               <button
-                // onClick={() => handleSelectUser(user)}
+                onClick={() => handleSelectUser(user)}
                 key={user.user_id}
-                className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2"
+                className={`flex flex-row items-center hover:bg-gray-100 hover:text-gray-800 rounded-xl p-2 ${userid === user.user_id && "bg-gray-100 text-gray-800"}`}
               >
                 {generateRandomAvatar(user.username)}
                 <div className="ml-2 text-sm font-semibold">

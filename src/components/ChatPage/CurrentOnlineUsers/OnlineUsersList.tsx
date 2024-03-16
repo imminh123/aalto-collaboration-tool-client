@@ -5,17 +5,17 @@ import { fetchAllUsers } from "../../../redux/friendsReducer";
 import { RootState } from "../../../redux";
 import { setReceiverDetail } from "../../../redux/channelReducer";
 import { generateRandomAvatar, truncateString } from "../../../utils/helper";
+import { useNavigate } from "react-router-dom";
+import { UserInterface } from "../../../config/interface";
 
-interface UserInterface {
-  username: string;
-  user_id: string;
-}
+
 
 const OnlineUsersList = () => {
   const [users, setUsers] = useState([]);
   const dispatch = useDispatch();
   const userId = useSelector((state: RootState) => state.login.user_id);
-
+  let navigate = useNavigate();
+  
   const onlineUsers = useSelector(
     (state: RootState) => state.users.onlineUsers
   );
@@ -32,6 +32,7 @@ const OnlineUsersList = () => {
   }, []);
 
   const handleSelectUser = (user: UserInterface) => {
+    navigate("/chat/direct/" + user.user_id)
     dispatch(setReceiverDetail(user));
   };
 
@@ -50,7 +51,7 @@ const OnlineUsersList = () => {
             <button
               onClick={() => handleSelectUser(user)}
               key={user.user_id}
-              className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2"
+              className="flex flex-row items-center w-full hover:bg-gray-100 rounded-xl p-2"
             >
               {generateRandomAvatar(user.username)}
               <div className="ml-2 text-sm font-semibold">{truncateString(user.username, 10)}</div>
@@ -60,7 +61,7 @@ const OnlineUsersList = () => {
 
       <div className="flex flex-row items-center justify-between text-xs mt-6">
         <span className="font-bold text-lg">Offline</span>
-        <span className="flex items-center justify-center text-black bg-gray-300 h-4 w-4 rounded-full">
+        <span className="flex items-center justify-center text-black bg-gray-300 hover:text-gray-800 h-4 w-4 rounded-full">
           7
         </span>
       </div>
@@ -70,7 +71,7 @@ const OnlineUsersList = () => {
           <button
             onClick={() => handleSelectUser(user)}
             key={user.user_id}
-            className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2"
+            className="flex flex-row items-center hover:bg-gray-100 hover:text-gray-800 rounded-xl p-2 w-full"
           >
             {generateRandomAvatar(user.username)}
             <div className="ml-2 text-sm font-semibold">{user.username}</div>

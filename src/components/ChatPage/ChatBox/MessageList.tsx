@@ -7,49 +7,25 @@ import {
   findObjectWithProperty,
 } from "../../../helpers/cryptography";
 import "./MessageList.css";
-import { generateRandomAvatar } from "../../../utils/helper";
+import { filterObjectsByPropertyValue, filterObjectsByTwoProperties, generateRandomAvatar } from "../../../utils/helper";
+import { useParams } from "react-router-dom";
+import { CHAT_MODE } from "../../../config/constant";
 
 const MessageList = () => {
+  const {mode, userid: receiverId} = useParams();
   const [decryptedMessages, setDecryptedMessages] = useState([]);
   const messages = useSelector((state: any) => {
     return state.chat.messages;
   });
   const chatMode: number = useSelector((state: any) => state.channel.mode);
   const currentChannel = useSelector((state: any) => state.channel.channel);
-  const receiverId = useSelector((state: any) => state.channel.directUserId);
+  // const receiverId = useSelector((state: any) => state.channel.directUserId);
   const userId = useSelector((state: any) => state.login.user_id);
   const directUserName = useSelector(
     (state: any) => state.channel.directUserName
   );
   const userKey: any = secureStorage.getItem(`${userId}:keyPair`) as object;
 
-  function filterObjectsByPropertyValue<T>(
-    items: T[],
-    propertyName: keyof T,
-    value: unknown
-  ): T[] {
-    return items.filter((item) => item[propertyName] === value);
-  }
-
-  function findObjectByProperty<T, K extends keyof T>(
-    items: T[],
-    propertyName: K,
-    propertyValue: T[K]
-  ): T | undefined {
-    return items.find((item) => item[propertyName] === propertyValue);
-  }
-
-  function filterObjectsByTwoProperties<T>(
-    items: T[],
-    propertyName1: keyof T,
-    value1: any,
-    propertyName2: keyof T,
-    value2: any
-  ): T[] {
-    return items.filter(
-      (item) => item[propertyName1] === value1 && item[propertyName2] === value2
-    );
-  }
 
   function sortByOldestFirst(items: any): any {
     // @ts-ignore
@@ -70,8 +46,6 @@ const MessageList = () => {
       aesKey = await decryptData(messageWithKey.aesKey, userKey.privateKey);
       secureStorage.setItem(`dm_${userId}:${receiverId}`, aesKey);
     }
-
-    console.log(messages);
 
     // Necesearry data processing and message
     // decryption
@@ -128,43 +102,29 @@ const MessageList = () => {
   }
 
   useEffect(() => {
-    if (chatMode === 1) {
+    if (chatMode === CHAT_MODE.DIRECT) {
       const chatMode1Messages = filterObjectsByPropertyValue(
         messages,
         "chatMode",
         1
       );
-      // @ts-ignore
-      console.table([
-        ...filterObjectsByTwoProperties<any>(
-          chatMode1Messages,
-          "receiverId",
-          userId,
-          "senderId",
-          receiverId
-        ),
-        ...filterObjectsByTwoProperties<any>(
-          chatMode1Messages,
-          "senderId",
-          userId,
-          "receiverId",
-          receiverId
-        ),
-      ]);
 
+
+      
       // @ts-ignore
       let messagesThatWeNeedRecieved = filterObjectsByPropertyValue<any>(
         chatMode1Messages,
         "receiverId",
         userId
-      );
+        );
+      
       // @ts-ignore
       messagesThatWeNeedRecieved = filterObjectsByPropertyValue<any>(
         messagesThatWeNeedRecieved,
         "senderId",
         receiverId
-      );
-      // @ts-ignore
+        );
+      // @ts-ignore 
       let messagesThatWeNeedSent = filterObjectsByPropertyValue<any>(
         chatMode1Messages,
         "senderId",
@@ -176,6 +136,8 @@ const MessageList = () => {
         "senderId",
         receiverId
       );
+
+ 
       // @ts-ignore
       const toBeProcessedMessages = [
         ...filterObjectsByTwoProperties<any>(
@@ -198,9 +160,9 @@ const MessageList = () => {
           setDecryptedMessages(data);
         })
         .catch((e) => {
-          console.warn(e);
+          console.error(e);
         });
-    } else if (chatMode === 2) {
+    } else if (chatMode === CHAT_MODE.CHANNEL) {
       // Do channel messages decryption
       const chatMode2Messages = filterObjectsByPropertyValue(
         messages,
@@ -226,12 +188,7 @@ const MessageList = () => {
 
   return (
     <>
-      {/* {chatMode === 1 && (
-        <div>
-          <h2 className="channel_header font-bold py-2">{directUserName}</h2>
-        </div>
-      )} */}
-      {chatMode === 2 && (
+      {chatMode === CHAT_MODE.CHANNEL && (
         <div>
           <h2 className="channel_header">
             Channel: {currentChannel.channelName}
@@ -239,7 +196,7 @@ const MessageList = () => {
         </div>
       )}
 
-      {chatMode === 2 && (
+      {chatMode === CHAT_MODE.CHANNEL && (
         <div className="message_list">
           {decryptedMessages?.map((message: any) => (
             <div key={message.messageId} className="message">
@@ -250,12 +207,12 @@ const MessageList = () => {
       )}
 
       <div className="flex flex-col flex-auto flex-shrink-0 rounded-2xl bg-gray-800 p-4">
-        {chatMode === 1 && (
+        {chatMode === CHAT_MODE.DIRECT && (
           <>
             {decryptedMessages
               ?.filter(
                 (m: any) =>
-                  m.chatMode === 1 &&
+                  m.chatMode === CHAT_MODE.DIRECT &&
                   ((userId === m.receiverId && m.senderId === receiverId) ||
                     (userId === m.senderId && m.receiverId === receiverId))
               )
