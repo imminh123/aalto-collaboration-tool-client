@@ -1,149 +1,193 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import './ChatInput.css'; // Create and import CSS for ChatInput
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import "./ChatInput.css"; // Create and import CSS for ChatInput
 import { AiOutlineSend } from "react-icons/ai";
-import useWebSocket, { ReadyState } from 'react-use-websocket';
-import { useSelector, useDispatch } from 'react-redux';
-import { setMessages, setMessagesHistory } from '../../../redux/chatReducer';
-import secureStorage from 'react-secure-storage';
-import { decryptMessage, encryptData, encryptMessage, generateAESKey } from '../../../helpers/cryptography';
-import { v4 as uuidv4 } from 'uuid';
+import useWebSocket, { ReadyState } from "react-use-websocket";
+import { useSelector, useDispatch } from "react-redux";
+import { setMessages, setMessagesHistory } from "../../../redux/chatReducer";
+import secureStorage from "react-secure-storage";
+import {
+  decryptMessage,
+  encryptData,
+  encryptMessage,
+  generateAESKey,
+} from "../../../helpers/cryptography";
+import { v4 as uuidv4 } from "uuid";
 import { FileUploader } from "react-drag-drop-files";
-import { get } from 'http';
-import { setOnlineUsers } from '../../../redux/friendsReducer';
-import { setChannelAfterDelete, setChannelHistory, setNewChannelAction } from '../../../redux/channelReducer';
-import { useWebSocketContext } from '../../../hooks';
+import { get } from "http";
+import { setOnlineUsers } from "../../../redux/friendsReducer";
+import {
+  setChannelAfterDelete,
+  setChannelHistory,
+  setNewChannelAction,
+} from "../../../redux/channelReducer";
+import { useWebSocketContext } from "../../../hooks";
 
 const ChatInput = () => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const dispatch = useDispatch();
-  const userId = useSelector((state:any) => state.login.user_id);
+  const userId = useSelector((state: any) => state.login.user_id);
   const users = useSelector((state: any) => state.users.users);
-  const userName = useSelector((state:any) => state.login.username);
-  const chatMode = useSelector((state:any) => state.channel.mode);
-  const channel = useSelector((state:any) => state.channel.channel);
-  const receiverName = useSelector((state:any) => state.channel.directUserName);
-  const receiverId = useSelector((state:any) => state.channel.directUserId);
-  const receiverPK = useSelector((state:any) => state.channel.directUserPK);
-  const newChannelAction = useSelector((state:any) => state.channel.newChannelAction);
+  const userName = useSelector((state: any) => state.login.username);
+  const chatMode = useSelector((state: any) => state.channel.mode);
+  const channel = useSelector((state: any) => state.channel.channel);
+  const receiverName = useSelector(
+    (state: any) => state.channel.directUserName
+  );
+  const receiverId = useSelector((state: any) => state.channel.directUserId);
+  const receiverPK = useSelector((state: any) => state.channel.directUserPK);
+  const newChannelAction = useSelector(
+    (state: any) => state.channel.newChannelAction
+  );
+  const fileInput = useRef<HTMLInputElement>(null);
 
   // const socketUrl = `ws://localhost:8000/ws/${userId}`;
   const [file, setFile] = useState(null);
   const fileTypes = ["JPEG", "PNG", "GIF", "PDF"];
-  const webSocketContext:any = useWebSocketContext();
-  const { sendMessage, lastMessage, readyState, getWebSocket } = webSocketContext;
-  
-  const handleFile = (file:any) => {
+  const webSocketContext: any = useWebSocketContext();
+  const { sendMessage, lastMessage, readyState, getWebSocket } =
+    webSocketContext;
+
+  const handleFile = (file: any) => {
     file[0].sender = userId;
     setFile(file);
   };
 
+  const sendTextMessage = useCallback(
+    async (userInput: string) => {
+      if (file !== null) {
+        sendMessage(
+          JSON.stringify({
+            sender: userId,
+            receiverId: receiverId,
+            receiverName: receiverName,
+            channel: channel,
+            fileName: (file[0] as any).name,
+            messageType: 2, //MessageType 1 for sending text, 2 for sending file
+            chatMode: 2,
+          })
+        );
+        sendMessage(file[0]);
+      } else {
+        const now = new Date();
+        if (chatMode === 1) {
+          // This is for DirectMessages
+          // It would be quite similar with channels as well
+          let keyExists = false;
+          if (!secureStorage.getItem(`dm_${userId}:${receiverId}`)) {
+            // Generate key and send in the message encrypted
+            secureStorage.setItem(
+              `dm_${userId}:${receiverId}`,
+              await generateAESKey()
+            );
+          } else {
+            keyExists = true;
+          }
 
-  const sendTextMessage = useCallback(async (userInput: string) => {
-    if(file !== null){
-      sendMessage(JSON.stringify({
-        sender: userId,
-        receiverId: receiverId,
-        receiverName: receiverName,
-        channel: channel,
-        fileName: (file[0] as any).name,
-        messageType: 2, //MessageType 1 for sending text, 2 for sending file
-        chatMode: 2,
-      }));
-      sendMessage(file[0]);
-    }
-    else {
-      const now = new Date();
-      if(chatMode === 1) {
-        // This is for DirectMessages
-        // It would be quite similar with channels as well
-        let keyExists = false;
-        if(!secureStorage.getItem(`dm_${userId}:${receiverId}`)) {
-          // Generate key and send in the message encrypted
-          secureStorage.setItem(`dm_${userId}:${receiverId}`, await generateAESKey());
-        } else {
-          keyExists = true;
+          const symmetricKey: any = secureStorage.getItem(
+            `dm_${userId}:${receiverId}`
+          ) as string;
+          let message = {
+            messageId: uuidv4(),
+            senderId: userId,
+            senderName: userName,
+            content: await encryptMessage(userInput, symmetricKey), // Encrypt the symmetric key with reciever's PK
+            channel: channel,
+            timestamp: Date.UTC(
+              now.getUTCFullYear(),
+              now.getUTCMonth(),
+              now.getUTCDate(),
+              now.getUTCHours(),
+              now.getUTCMinutes(),
+              now.getUTCSeconds()
+            ),
+            receiverName: receiverName,
+            receiverId: receiverId,
+            chatMode: chatMode,
+            messageType: 1, // MessageType 1 for sending text, 2 for sending file
+          };
+
+          if (!keyExists) {
+            // @ts-ignore
+            message.aesKey = await encryptData(symmetricKey, receiverPK);
+          }
+          sendMessage(JSON.stringify(message));
+        } else if (chatMode === 2) {
+          // The key will be always existent
+          // because a message will be generated by the channel
+          // which is going to be always loaded before getting the
+          // chance to send something
+          const symmetricKey: any = secureStorage.getItem(
+            `ch_${channel.channelId}`
+          ) as string;
+          let message = {
+            messageId: uuidv4(),
+            senderId: userId,
+            senderName: userName,
+            content: await encryptMessage(userInput, symmetricKey), // Encrypt the symmetric key with reciever's PK
+            channel: channel.channelId,
+            timestamp: Date.UTC(
+              now.getUTCFullYear(),
+              now.getUTCMonth(),
+              now.getUTCDate(),
+              now.getUTCHours(),
+              now.getUTCMinutes(),
+              now.getUTCSeconds()
+            ),
+            chatMode: chatMode,
+            messageType: 1, // MessageType 1 for sending text, 2 for sending file
+          };
+          sendMessage(JSON.stringify(message));
+          // let keyExists = false;
+          // if(!secureStorage.getItem(`${channelName}_key`)) {
+          //   // Decrypt the channel key from the appropriate message
+          //   // secureStorage.setItem(`dm_${userId}:${receiverId}`, await generateAESKey());
+          // } else {
+          //   keyExists = true;
+          // }
         }
-  
-        const symmetricKey: any = secureStorage.getItem(`dm_${userId}:${receiverId}`) as string;
-        let message = {
-          messageId: uuidv4(),
-          senderId: userId,
-          senderName: userName,
-          content: await encryptMessage(userInput, symmetricKey), // Encrypt the symmetric key with reciever's PK
-          channel: channel,
-          timestamp: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 
-          now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()),
-          receiverName: receiverName,
-          receiverId: receiverId,
-          chatMode: chatMode, 
-          messageType: 1,  // MessageType 1 for sending text, 2 for sending file
-        };
-  
-        if(!keyExists) {
-          // @ts-ignore
-          message.aesKey = await encryptData(symmetricKey, receiverPK);
-        }
-        sendMessage(JSON.stringify(message))
-      } else if (chatMode === 2) {
-        // The key will be always existent
-        // because a message will be generated by the channel
-        // which is going to be always loaded before getting the
-        // chance to send something
-        const symmetricKey: any = secureStorage.getItem(`ch_${channel.channelId}`) as string;
-        let message = {
-          messageId: uuidv4(),
-          senderId: userId,
-          senderName: userName,
-          content: await encryptMessage(userInput, symmetricKey), // Encrypt the symmetric key with reciever's PK
-          channel: channel.channelId,
-          timestamp: Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 
-          now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()),
-          chatMode: chatMode, 
-          messageType: 1,  // MessageType 1 for sending text, 2 for sending file
-        };
-        sendMessage(JSON.stringify(message))
-        // let keyExists = false;
-        // if(!secureStorage.getItem(`${channelName}_key`)) {
-        //   // Decrypt the channel key from the appropriate message
-        //   // secureStorage.setItem(`dm_${userId}:${receiverId}`, await generateAESKey());
-        // } else {
-        //   keyExists = true;
-        // }
       }
-    }
-  }, [sendMessage,channel, file, receiverName, receiverId, chatMode]);
+    },
+    [sendMessage, channel, file, receiverName, receiverId, chatMode]
+  );
 
   const handleEnter = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if(e.key === 'Enter'){
+    if (e.key === "Enter") {
       sendTextMessage(input);
-      setInput('');
+      setInput("");
     }
-  }
+  };
 
   const handleSendMessage = async () => {
     sendTextMessage(input);
-    setInput('');
-  }
+    setInput("");
+  };
 
   const handleSendFile = () => {
-      sendTextMessage("");
-      setFile(null);
-  }
+    sendTextMessage("");
+    setFile(null);
+  };
 
   function filterUsersByUserIDs(items: any, uuidsToFilterBy: any): any {
     // @ts-ignore
-    return items.filter(item => uuidsToFilterBy.includes(item.user_id));
+    return items.filter((item) => uuidsToFilterBy.includes(item.user_id));
   }
-  
+
   // @ts-ignore
-  const encryptSymmetricKeysAndWelcomMessageForUsers = async (allUsers, newChannelDetail, key) => {
-    let usersToEncryptFor = filterUsersByUserIDs(allUsers, newChannelDetail.channelMembers);
+  const encryptSymmetricKeysAndWelcomMessageForUsers = async (
+    allUsers,
+    newChannelDetail,
+    key
+  ) => {
+    let usersToEncryptFor = filterUsersByUserIDs(
+      allUsers,
+      newChannelDetail.channelMembers
+    );
     // console.log(usersToEncryptFor);
-    let encryptedKeys = [];
-    for(let i = 0; i < usersToEncryptFor.length; i++) {
+    let encryptedKeys: any = [];
+    for (const element of usersToEncryptFor) {
       encryptedKeys.push({
-        userId: usersToEncryptFor[i].user_id,
-        enryptedKey: await encryptData(key, usersToEncryptFor[i].public_key)
+        userId: element.user_id,
+        enryptedKey: await encryptData(key, element.public_key),
       });
     }
     // console.log(secureStorage.getItem(`ch_${newChannelDetail.channelId}`) as string);
@@ -151,50 +195,69 @@ const ChatInput = () => {
       messageId: uuidv4(),
       senderId: newChannelAction.channelId,
       senderName: newChannelAction.channelName,
-      content: await encryptMessage("Tervetuloa!", secureStorage.getItem(`ch_${newChannelDetail.channelId}`) as string), // Encrypt the symmetric key with reciever's PK
+      content: await encryptMessage(
+        "Tervetuloa!",
+        secureStorage.getItem(`ch_${newChannelDetail.channelId}`) as string
+      ), // Encrypt the symmetric key with reciever's PK
       channel: newChannelDetail.channelId,
       keys: encryptedKeys,
       // receiverName: receiverName,
       // receiverId: receiverId,
-      chatMode: 2, 
-      messageType: 1,  // MessageType 1 for sending text, 2 for sending file
+      chatMode: 2,
+      messageType: 1, // MessageType 1 for sending text, 2 for sending file
     };
     return message;
   };
 
   useEffect(() => {
-    if(!!newChannelAction){
-      if(newChannelAction.channelAction === 'add'){
-        sendMessage(JSON.stringify({
-          newChannel: newChannelAction,
-          messageType: 4
-        }) as any);
+    if (!!newChannelAction) {
+      if (newChannelAction.channelAction === "add") {
+        sendMessage(
+          JSON.stringify({
+            newChannel: newChannelAction,
+            messageType: 4,
+          }) as any
+        );
 
         // sendMessage()
-        encryptSymmetricKeysAndWelcomMessageForUsers(users, newChannelAction, secureStorage.getItem(`ch_${newChannelAction.channelId}`) as string).then((data) => {
+        encryptSymmetricKeysAndWelcomMessageForUsers(
+          users,
+          newChannelAction,
+          secureStorage.getItem(`ch_${newChannelAction.channelId}`) as string
+        ).then((data) => {
           console.log(data);
           sendMessage(JSON.stringify(data));
         });
         // console.log(encryptSymmetricKeysAndWelcomMessageForUsers(users, newChannelAction.channelMembers, "123"));
-        console.log("This is the channel: " + JSON.stringify(newChannelAction))
-      }
-      else if(newChannelAction.channelAction === 'delete'){
-        sendMessage(JSON.stringify({
-          deleteChannel: newChannelAction,
-          messageType: 5
-        }) as any);
+        console.log("This is the channel: " + JSON.stringify(newChannelAction));
+      } else if (newChannelAction.channelAction === "delete") {
+        sendMessage(
+          JSON.stringify({
+            deleteChannel: newChannelAction,
+            messageType: 5,
+          }) as any
+        );
       }
     }
     dispatch(setNewChannelAction(null));
-  },[newChannelAction])
+  }, [newChannelAction]);
 
   useEffect(() => {
-    if(!!lastMessage?.data && !!lastMessage && (lastMessage?.data instanceof ArrayBuffer || lastMessage?.data instanceof Blob)){
-      const convertedPdfFile = new File([(lastMessage as any)?.data], "tmp.pdf", { type: "application/pdf" });
+    if (
+      !!lastMessage?.data &&
+      !!lastMessage &&
+      (lastMessage?.data instanceof ArrayBuffer ||
+        lastMessage?.data instanceof Blob)
+    ) {
+      const convertedPdfFile = new File(
+        [(lastMessage as any)?.data],
+        "tmp.pdf",
+        { type: "application/pdf" }
+      );
       let blob = new Blob([convertedPdfFile], { type: convertedPdfFile.type });
       let url = URL.createObjectURL(blob);
-      let a = document.createElement('a');
-      a.style.display = 'none';
+      let a = document.createElement("a");
+      a.style.display = "none";
       a.href = url;
       a.download = convertedPdfFile.name;
       document.body.appendChild(a);
@@ -202,59 +265,93 @@ const ChatInput = () => {
       URL.revokeObjectURL(url);
       document.body.removeChild(a);
       setFile(null);
-    }
-    else if(typeof lastMessage?.data === 'string'){
+    } else if (typeof lastMessage?.data === "string") {
       let messageObject = JSON.parse(lastMessage?.data);
-      if (messageObject.loginType === 0){
+      if (messageObject.loginType === 0) {
         // loginType = 0: rerender online user list
-        dispatch(setOnlineUsers(messageObject.onlineUserList))
-      }
-      else if (messageObject.loginType === 1)
-      {
+        dispatch(setOnlineUsers(messageObject.onlineUserList));
+      } else if (messageObject.loginType === 1) {
         // loginType = 1: load all messages history and channel history to new login user
-        dispatch(setMessagesHistory(messageObject.messagesHistory))
-        dispatch(setChannelHistory(messageObject.channelHistory))
+        dispatch(setMessagesHistory(messageObject.messagesHistory));
+        dispatch(setChannelHistory(messageObject.channelHistory));
       }
       // loginType = 2: load channel history to new login user
-      else if (messageObject.loginType === 2){
-        dispatch(setChannelHistory(messageObject.channelHistory))
-      }
-      else if(messageObject.loginType === 3){
+      else if (messageObject.loginType === 2) {
+        dispatch(setChannelHistory(messageObject.channelHistory));
+      } else if (messageObject.loginType === 3) {
         dispatch(setChannelAfterDelete(messageObject.deletedChannel));
-      }
-      else{
+      } else {
         dispatch(setMessages(lastMessage?.data));
       }
-      
     }
   }, [lastMessage?.data]);
 
-
-
+  const handleSelectFile = () => {
+    fileInput.current?.click();
+  };
   return (
     <div className="chat_section">
-      <div className='file_input'>
-        <FileUploader
-            multiple={true}
-            handleChange={handleFile}
-            name="file"
-            types={fileTypes}
-            className='file_input_field'
+      <div className="flex flex-row items-center h-16 rounded-xl bg-white w-full px-4">
+        <button
+          className="flex items-center justify-center text-gray-400 hover:text-gray-600"
+          onClick={handleSelectFile}
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+            ></path>
+          </svg>
+          <input
+            type="file"
+            ref={fileInput}
+            id="fileUpload"
+            name="fileUpload"
+            onChange={handleFile} 
+            style={{ display: "none" }}
+            accept=".jpg, .jpeg, .png, .gif, .pdf"
           />
-          {file && <button className='send_button' 
-          onClick={handleSendFile}
-          >Up Load File</button>}
-      </div>
-      <div className='chat_input'>
-        <input
-          className='chat_input_field'
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleEnter}
-          placeholder="Aa"
-        />
-        <button className='send_button' onClick={handleSendMessage}><AiOutlineSend/></button>
+        </button>
+        <div className="flex-grow ml-4">
+          <div className="relative w-full">
+            <input
+              type="text"
+              className="flex w-full border rounded-xl focus:outline-none focus:border-indigo-300 pl-4 h-10"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleEnter}
+            />
+          </div>
+        </div>
+        <div className="ml-4">
+          <button className="flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 rounded-xl text-white px-4 py-1 flex-shrink-0">
+            <span>Send</span>
+            <span className="ml-2">
+              <svg
+                className="w-4 h-4 transform rotate-45 -mt-px"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                ></path>
+              </svg>
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );

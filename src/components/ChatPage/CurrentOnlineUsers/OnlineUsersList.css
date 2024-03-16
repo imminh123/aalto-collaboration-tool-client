@@ -1,12 +1,8 @@
 /* src/components/OnlineUsersList/OnlineUsersList.css */
 
 .online-users-list {
-    background-color: #2f3136;
-    width: 240px;
-    height: 100vh;
-    overflow-y: auto;
+    /* background-color: #2f3136; */
     color: white;
-    /* margin: 1rem; */
   }
 
   .online_user_header{

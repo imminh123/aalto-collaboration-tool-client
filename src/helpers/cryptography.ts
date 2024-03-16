@@ -167,7 +167,9 @@ export  async function decryptData(encryptedData: string, privateKey: string) {
 
   export async function encryptMessage(message: string, secretKey: string) {
     const encodedMessage = new TextEncoder().encode(message);
+    console.log("🚀 ~ encryptMessage ~ encodedMessage:", encodedMessage)
     const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Initialization vector
+    console.log("🚀 ~ encryptMessage ~ iv:", iv)
     const encryptedContent = await window.crypto.subtle.encrypt(
       {
         name: "AES-GCM",
@@ -176,6 +178,7 @@ export  async function decryptData(encryptedData: string, privateKey: string) {
       await importAESKey(secretKey),
       encodedMessage
     );
+    console.log("🚀 ~ encryptMessage ~ encryptedContent:", encryptedContent)
     // Combine the IV with the encrypted data. The IV is needed for decryption.
     const ivAndEncryptedContent = new Uint8Array(iv.length + encryptedContent.byteLength);
     ivAndEncryptedContent.set(iv);

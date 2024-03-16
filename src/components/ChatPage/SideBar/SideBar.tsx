@@ -20,11 +20,15 @@ import { fetchDocsApi } from "../../../plugin/fetchApi";
 import "quill/dist/quill.bubble.css";
 import Sharedb from "sharedb/lib/client";
 import richText from "rich-text";
-import secureStorage from 'react-secure-storage';
-import { decryptMessage, encryptData, encryptMessage, generateAESKey } from '../../../helpers/cryptography';
-import { useWebSocketContext } from '../../../hooks';
-
-
+import secureStorage from "react-secure-storage";
+import {
+  decryptMessage,
+  encryptData,
+  encryptMessage,
+  generateAESKey,
+} from "../../../helpers/cryptography";
+import { useWebSocketContext } from "../../../hooks";
+import { generateRandomAvatar, truncateString } from "../../../utils/helper";
 
 interface Props {}
 
@@ -66,8 +70,8 @@ const Sidebar: React.FC<Props> = () => {
   const label = { inputProps: { "aria-label": "Checkbox demo" } };
   const [newChannelUsers, setNewChannelUsers] = React.useState([] as any);
   const [documents, setDocuments] = useState<string[]>([]);
-  
-  const webSocketContext:any = useWebSocketContext();
+
+  const webSocketContext: any = useWebSocketContext();
   const { sendMessage } = webSocketContext;
 
   const handleSelectChannel = (selectedChannel: string) => {
@@ -82,11 +86,11 @@ const Sidebar: React.FC<Props> = () => {
   // @ts-ignore
   const encryptSymmetricKeyForUsers = async (key) => {
     let usersToEncryptFor = filterUsersByUserIDs(users, newChannelUsers);
-    let encryptedKeys = [];
-    for(let i = 0; i < usersToEncryptFor.length; i++) {
+    let encryptedKeys: any = [];
+    for (const element of usersToEncryptFor) {
       encryptedKeys.push({
-        userId: usersToEncryptFor[i].user_id,
-        enryptedKey: await encryptData(key, usersToEncryptFor[i].public_key)
+        userId: element.user_id,
+        enryptedKey: await encryptData(key, element.public_key),
       });
     }
 
@@ -95,7 +99,7 @@ const Sidebar: React.FC<Props> = () => {
 
   function filterUsersByUserIDs(items: any, uuidsToFilterBy: any): any {
     // @ts-ignore
-    return items.filter(item => uuidsToFilterBy.includes(item.user_id));
+    return items.filter((item) => uuidsToFilterBy.includes(item.user_id));
   }
 
   const handleAddChannel = async () => {
@@ -119,7 +123,7 @@ const Sidebar: React.FC<Props> = () => {
       content: await encryptMessage("Tervetuloa!", generatedKey), // Encrypt the symmetric key with reciever's PK
       channel: newChannelDetail,
       keys: await encryptSymmetricKeyForUsers(generatedKey),
-      chatMode: 2, 
+      chatMode: 2,
     };
 
     dispatch(setNewChannelAction(newChannelDetail));
@@ -154,7 +158,7 @@ const Sidebar: React.FC<Props> = () => {
 
   const handleOpenFile = (fileId: string) => {
     // console.log('open file');
-    window.open(`/docs/${fileId}`, '_blank');
+    window.open(`/docs/${fileId}`, "_blank");
   };
 
   const handleCreateNewFile = () => {
@@ -226,21 +230,42 @@ const Sidebar: React.FC<Props> = () => {
         </Box>
       </Modal>
 
-      <aside className="sidebar">
-        <div className="direct-messages">
-          <h3> You are login as {userName}</h3>
+      <aside className="sidebar bg-gray-700">
+        <div className="flex flex-col items-center bg-gray-800 mt-1 w-full  p-4 rounded-lg">
+          <div
+            className={`flex items-center justify-center h-16 w-16 bg-pink-200 rounded-full mb-2`}
+          >
+            {userName.charAt(0).toUpperCase()}
+          </div>
+          {userName}
         </div>
+
         <div className="direct-messages">
           <h2>Direct Message</h2>
+          <div className="flex flex-col space-y-1 mt-4 -mx-2 overflow-y-auto">
+            {users.map((user: any) => (
+              <button
+                // onClick={() => handleSelectUser(user)}
+                key={user.user_id}
+                className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2"
+              >
+                {generateRandomAvatar(user.username)}
+                <div className="ml-2 text-sm font-semibold">
+                  {truncateString(user.username, 18)}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
+
         <div className="channels">
           <h2 className="channels-header">
-            Channels
+            <span>Channels</span>
             <button className="send_button" onClick={handleOpen}>
               <FaPlus />
             </button>
           </h2>
-          {channels!.map((channel: any) => (
+          {channels?.map((channel: any) => (
             <div
               key={channel.channelId}
               className={`channel-item ${channel === currentChannel ? "active" : ""}`}
