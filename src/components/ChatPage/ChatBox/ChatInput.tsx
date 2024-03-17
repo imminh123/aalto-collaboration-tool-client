@@ -52,9 +52,96 @@ const ChatInput = () => {
   const { sendMessage, lastMessage, readyState, getWebSocket } =
     webSocketContext;
 
-  const handleFile = (file: any) => {
-    file[0].sender = userId;
-    setFile(file);
+    const [progress, setProgress] = useState(0);
+  const [downloadSpeed, setDownloadSpeed] = useState(0);
+  const [startTime, setStartTime] = useState<number>(0);
+
+  // Function to handle the file download
+  const handleDownload = async (object_name: string) => {
+    try {
+      setStartTime(Date.now());
+      setProgress(0);
+      setDownloadSpeed(0);
+
+      const response = await fetch(`http://localhost:8000/download-file/${object_name}`, {
+        method: "GET"
+      })
+      const reader = response?.body?.getReader();
+      let receivedLength = 0;
+      let intervalStartTime = Date.now();
+
+      // Create a new Blob to hold the downloaded file
+      const fileBlob: any = [];
+      while (true) {
+        const { done, value } = await reader!.read();
+        if (done) {
+          break;
+        }
+
+        receivedLength += value.length;
+        setProgress(receivedLength);
+
+        // Calculate download speed every 1 second
+        if (Date.now() - intervalStartTime >= 1000) {
+          const intervalEndTime = Date.now();
+          const durationInSeconds = (intervalEndTime - startTime) / 1000;
+          const bytesPerSecond = receivedLength / durationInSeconds;
+          const bitsPerSecond = bytesPerSecond * 8;
+          setDownloadSpeed(bitsPerSecond);
+          intervalStartTime = intervalEndTime;
+        }
+
+        fileBlob.push(value);
+      }
+      
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(new Blob(fileBlob));
+       // Create an anchor element to trigger the download
+       const link = document.createElement('a');
+       link.href = url;
+       link.setAttribute('download', object_name); // Set the filename
+       document.body.appendChild(link);
+       link.click();
+ 
+       // Cleanup
+       window.URL.revokeObjectURL(url);
+       document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  }
+
+  const handleFile = async () => {
+    // file[0].sender = userId;
+    // setFile(file);
+    if (fileInput?.current?.files) {
+      const file = fileInput?.current?.files[0]; // Assuming only one file is dropped
+      const formData = new FormData();
+
+      formData.append("file", file);
+
+      try {
+        await fetch(`http://localhost:8000/upload-file`, {
+          method: "POST",
+          body: formData,
+        });
+
+        sendMessage(
+          JSON.stringify({
+            sender: userId,
+            receiverId: receiverId,
+            receiverName: receiverUser?.username,
+            channel: channel,
+            fileName: (file as any).name,
+            messageType: 2, //MessageType 1 for sending text, 2 for sending file
+            chatMode: 2,
+          })
+        );
+
+      } catch (error) {
+        console.error("An error occurred while uploading the file:", error);
+      }
+    }
   };
 
   useEffect(() => {
@@ -62,11 +149,11 @@ const ChatInput = () => {
       const user = await fetchApi(`/users/${receiverId}`, {
         method: "GET",
       });
-      setReceiverUser(user)
-    }
+      setReceiverUser(user);
+    };
 
-    if(receiverId) {
-      getUser()
+    if (receiverId) {
+      getUser();
     }
   }, [receiverId]);
 
@@ -335,7 +422,7 @@ const ChatInput = () => {
             name="fileUpload"
             onChange={handleFile}
             style={{ display: "none" }}
-            accept=".jpg, .jpeg, .png, .gif, .pdf"
+            accept=".jpg, .jpeg, .png, .gif, .pdf, .txt"
           />
         </button>
         <div className="flex-grow ml-4">
@@ -349,6 +436,7 @@ const ChatInput = () => {
             />
           </div>
         </div>
+
         <div className="ml-4">
           <button
             onClick={handleSendMessage}

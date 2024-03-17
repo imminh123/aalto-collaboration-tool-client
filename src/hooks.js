@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import useWebSocket from 'react-use-websocket';
 
-const WebSocketContext = createContext(null);
+const WebSocketContext = createContext();
 
 
 export const useWebSocketContext = () => useContext(WebSocketContext);
