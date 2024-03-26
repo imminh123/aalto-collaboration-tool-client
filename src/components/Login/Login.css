@@ -6,6 +6,7 @@
     background-color: #f5f5f5;
   
     .login-form {
+      width: 300px;
       display: flex;
       flex-direction: column;
       padding: 20px;
@@ -34,14 +35,6 @@
         border-radius: 4px;
       }
       
-      .psswrd_icon{
-        position: relative !important;
-        cursor: pointer !important;
-        right: -8rem !important;
-        top: 1px !important;
-        transform: translateY(-175%) !important;
-      }
-
       .login-button {
         padding: 10px 15px;
         background-color: #3498db;

@@ -1,10 +1,9 @@
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
-import React, { useEffect, useState } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
-import { persistor } from "../../../index";
 import {
   selectChannelList,
   selectChannelName,
@@ -15,21 +14,23 @@ import "./SideBar.css";
 // import { useHistory } from 'react-router-dom';
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Button, Checkbox } from "@mui/material";
+import "quill/dist/quill.bubble.css";
+import richText from "rich-text";
+import Sharedb from "sharedb/lib/client";
 import { v4 as uuidv4 } from "uuid";
 import { fetchDocsApi } from "../../../plugin/fetchApi";
-import "quill/dist/quill.bubble.css";
-import Sharedb from "sharedb/lib/client";
-import richText from "rich-text";
-import secureStorage from "react-secure-storage";
-import {
-  decryptMessage,
-  encryptData,
-  encryptMessage,
-  generateAESKey,
-} from "../../../helpers/cryptography";
-import { useWebSocketContext } from "../../../hooks";
-import { generateRandomAvatar, truncateString } from "../../../utils/helper";
+// import secureStorage from "react-secure-storage";
+import { Dialog, Transition } from "@headlessui/react";
 import { UserInterface } from "../../../config/interface";
+import {
+  encryptData,
+  generateAESKey
+} from "../../../helpers/cryptography";
+import {
+  generateRandomAvatar,
+  secureStorage,
+  truncateString,
+} from "../../../utils/helper";
 
 interface Props {}
 
@@ -68,19 +69,18 @@ const Sidebar: React.FC<Props> = () => {
   const navigate = useNavigate();
   const users = useSelector((state: any) => state.users.users);
   const userName = useSelector((state: any) => state.login.username);
+  const user_id = useSelector((state: any) => state.login.user_id);
   const label = { inputProps: { "aria-label": "Checkbox demo" } };
   const [newChannelUsers, setNewChannelUsers] = React.useState([] as any);
   const [documents, setDocuments] = useState<string[]>([]);
 
-  const webSocketContext: any = useWebSocketContext();
-  const { sendMessage } = webSocketContext;
-
-  const handleSelectChannel = (selectedChannel: string) => {
+  const handleSelectChannel = (selectedChannel) => {
+    navigate("/chat/2/" + selectedChannel.channelId);
     dispatch(setChannelDetail(selectedChannel));
   };
 
   const handleSelectUser = (user: UserInterface) => {
-    navigate("/chat/direct/" + user.user_id)
+    navigate("/chat/1/" + user.user_id);
   };
 
   const handleClose = () => {
@@ -92,10 +92,10 @@ const Sidebar: React.FC<Props> = () => {
   const encryptSymmetricKeyForUsers = async (key) => {
     let usersToEncryptFor = filterUsersByUserIDs(users, newChannelUsers);
     let encryptedKeys: any = [];
-    for (const element of usersToEncryptFor) {
+    for (const user of usersToEncryptFor) {
       encryptedKeys.push({
-        userId: element.user_id,
-        enryptedKey: await encryptData(key, element.public_key),
+        userId: user.user_id,
+        enryptedKey: await encryptData(key, user.public_key),
       });
     }
 
@@ -120,19 +120,8 @@ const Sidebar: React.FC<Props> = () => {
     // with it's own SK, and then can decrypt it
     const generatedKey = await generateAESKey(); // Uncomment later the line below
     secureStorage.setItem(`ch_${newChannelDetail.channelId}`, generatedKey);
-    // Send initial message
-    const message = {
-      messageId: uuidv4(),
-      // senderId: userId,
-      senderName: newChannelDetail.channelName,
-      content: await encryptMessage("Tervetuloa!", generatedKey), // Encrypt the symmetric key with reciever's PK
-      channel: newChannelDetail,
-      keys: await encryptSymmetricKeyForUsers(generatedKey),
-      chatMode: 2,
-    };
 
     dispatch(setNewChannelAction(newChannelDetail));
-    // await sendMessage(JSON.stringify(message));
     handleClose();
   };
 
@@ -155,7 +144,6 @@ const Sidebar: React.FC<Props> = () => {
   };
 
   const handleLogout = async () => {
-    const pr = await persistor.purge();
     setTimeout(() => {
       navigate("/");
     }, 100);
@@ -195,32 +183,64 @@ const Sidebar: React.FC<Props> = () => {
 
   return (
     <>
-      <Modal open={open} onClose={handleClose}>
-        <Box sx={style}>
-          <h2>New channel name</h2>
-          <div className="add-channel-modal">
-            <input
-              className="add-channel-input"
-              onChange={(e) => setNewChannel(e.target.value)}
-            />
-            <button onClick={handleAddChannel}>Add</button>
+      <Transition appear show={open} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={() => {}}>
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-semibold leading-6 text-gray-900"
+                  >
+                    Create new channel
+                  </Dialog.Title>
+
+                  <Dialog.Description>
+                    <div className="flex mt-3">
+                      <input
+                        type="text"
+                        className="flex w-4/5 border rounded-xl focus:outline-none focus:border-indigo-300 pl-4 h-10 text-gray-900"
+                        onChange={(e) => setNewChannel(e.target.value)}
+                      />
+                      <button
+                        onClick={handleAddChannel}
+                        className="flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white px-4 py-1 flex-shrink-0 ml-2"
+                      >
+                        <span>Create</span>
+                      </button>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mt-3">Members</p>
+                      {users.map((u: any) => (
+                        <div key={u.user_id}>
+                          <Checkbox
+                            checked={newChannelUsers.includes(u.user_id)}
+                            onChange={(e) =>
+                              handleCheckboxChange(u.user_id, e.target.checked)
+                            }
+                            {...label}
+                          />
+                          {u.username}
+                        </div>
+                      ))}
+                    </div>
+                  </Dialog.Description>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
           </div>
-          <div>
-            {users.map((u: any) => (
-              <div key={u.user_id}>
-                <Checkbox
-                  checked={newChannelUsers.includes(u.user_id)}
-                  onChange={(e) =>
-                    handleCheckboxChange(u.user_id, e.target.checked)
-                  }
-                  {...label}
-                />
-                {u.username}
-              </div>
-            ))}
-          </div>
-        </Box>
-      </Modal>
+        </Dialog>
+      </Transition>
 
       <Modal open={openDocs} onClose={() => setOpenDocs(false)}>
         <Box sx={style}>
@@ -230,6 +250,7 @@ const Sidebar: React.FC<Props> = () => {
               className="add-channel-input"
               onChange={(e) => setNewDocs(e.target.value)}
             />
+
             <button onClick={handleCreateNewFile}>Create</button>
           </div>
         </Box>
@@ -248,18 +269,20 @@ const Sidebar: React.FC<Props> = () => {
         <div className="direct-messages">
           <h2>Direct Message</h2>
           <div className="flex flex-col space-y-1 mt-4 -mx-2 overflow-y-auto">
-            {users.map((user: any) => (
-              <button
-                onClick={() => handleSelectUser(user)}
-                key={user.user_id}
-                className={`flex flex-row items-center hover:bg-gray-100 hover:text-gray-800 rounded-xl p-2 ${userid === user.user_id && "bg-gray-100 text-gray-800"}`}
-              >
-                {generateRandomAvatar(user.username)}
-                <div className="ml-2 text-sm font-semibold">
-                  {truncateString(user.username, 18)}
-                </div>
-              </button>
-            ))}
+            {users
+              .filter((user) => user.user_id !== user_id)
+              .map((user: any) => (
+                <button
+                  onClick={() => handleSelectUser(user)}
+                  key={user.user_id}
+                  className={`flex flex-row items-center hover:bg-gray-100 hover:text-gray-800 rounded-xl p-2 ${userid === user.user_id && "bg-gray-100 text-gray-800"}`}
+                >
+                  {generateRandomAvatar(user.username)}
+                  <div className="ml-2 text-sm font-semibold">
+                    {truncateString(user.username, 18)}
+                  </div>
+                </button>
+              ))}
           </div>
         </div>
 

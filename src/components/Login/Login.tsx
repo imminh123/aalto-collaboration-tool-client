@@ -52,9 +52,9 @@ const Login: React.FC = () => {
       <form 
       // onSubmit={handleSubmit} 
       className="login-form">
-        <h1>Login</h1>
+        <h1 className='font-bold'>Login</h1>
         <div className="form-group">
-          <label htmlFor="email">Email:</label>
+          <label htmlFor="email">Username</label>
           <input
             // type="email"
             id="username"
@@ -64,16 +64,17 @@ const Login: React.FC = () => {
           />
         </div>
         <div className="form-group">
-          <label htmlFor="password">Password:</label>
+          <label htmlFor="password">Password </label>
+          <div className='relative'>
           <input
             type={showPassword ? "text" : "password"}
             id="password"
+            className='w-full'
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
           <i
-
             style={{
               position: 'absolute',
               cursor: 'pointer',
@@ -84,6 +85,8 @@ const Login: React.FC = () => {
             className={`psswrd_icon ${showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}`}
             onClick={togglePassword}
             ></i>
+          </div>
+         
         </div>
         <button 
           // type="submit" 

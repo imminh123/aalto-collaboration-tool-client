@@ -32,7 +32,7 @@ const OnlineUsersList = () => {
   }, []);
 
   const handleSelectUser = (user: UserInterface) => {
-    navigate("/chat/direct/" + user.user_id)
+    navigate("/chat/1/" + user.user_id)
     dispatch(setReceiverDetail(user));
   };
 

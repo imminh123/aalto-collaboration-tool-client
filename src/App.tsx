@@ -11,7 +11,7 @@ import { ReadyState } from 'react-use-websocket';
 
 const App: React.FC = () => {
   const { readyState } = useWebSocketContext();
-  let [isOpen, setIsOpen] = useState(true);
+  let [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (readyState !== ReadyState.OPEN) {

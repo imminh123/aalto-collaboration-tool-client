@@ -1,7 +1,8 @@
 // Part 1
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
-import secureStorage from 'react-secure-storage';
+// import secureStorage from 'react-secure-storage';
 import { generateKeyPair, exportPublicKey, exportPrivateKey } from '../helpers/cryptography'
+import { secureStorage } from "../utils/helper";
   export const fetchUser = createAsyncThunk(
       "user/login",
       async ({ username, password }: { username: string, password: string }, thunkAPI) => {
@@ -25,6 +26,7 @@ import { generateKeyPair, exportPublicKey, exportPrivateKey } from '../helpers/c
           }
     
           const data = await response.json(); // Parse the response as JSON
+          console.log("🚀 ~ data:", data)
           return data; // Return the response data
     
         } catch (error) {
@@ -67,7 +69,7 @@ import { generateKeyPair, exportPublicKey, exportPrivateKey } from '../helpers/c
         publicKey: await exportPublicKey(keyPair),
         privateKey: await exportPrivateKey(keyPair)
       }
-      secureStorage.setItem(`${data.user_id}:keyPair`, keyPairForStorage);
+      secureStorage.setItem(`${data.user_id}:keyPair`, JSON.stringify(keyPairForStorage));
       // console.table(secureStorage.getItem(`${data.user_id}:keyPair`));
       return data; // Return the response data
 

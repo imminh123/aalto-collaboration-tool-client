@@ -4,7 +4,7 @@ import { AiOutlineSend } from "react-icons/ai";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { useSelector, useDispatch } from "react-redux";
 import { setMessages, setMessagesHistory } from "../../../redux/chatReducer";
-import secureStorage from "react-secure-storage";
+// import secureStorage from "react-secure-storage";
 import {
   decryptMessage,
   encryptData,
@@ -25,6 +25,7 @@ import { CHAT_MODE } from "../../../config/constant";
 import { useParams } from "react-router-dom";
 import { fetchApi } from "../../../plugin/fetchApi";
 import { UserInterface } from "../../../config/interface";
+import { secureStorage } from "../../../utils/helper";
 
 const ChatInput = () => {
   const [input, setInput] = useState("");
@@ -52,68 +53,7 @@ const ChatInput = () => {
   const { sendMessage, lastMessage, readyState, getWebSocket } =
     webSocketContext;
 
-    const [progress, setProgress] = useState(0);
-  const [downloadSpeed, setDownloadSpeed] = useState(0);
-  const [startTime, setStartTime] = useState<number>(0);
-
-  // Function to handle the file download
-  const handleDownload = async (object_name: string) => {
-    try {
-      setStartTime(Date.now());
-      setProgress(0);
-      setDownloadSpeed(0);
-
-      const response = await fetch(`http://localhost:8000/download-file/${object_name}`, {
-        method: "GET"
-      })
-      const reader = response?.body?.getReader();
-      let receivedLength = 0;
-      let intervalStartTime = Date.now();
-
-      // Create a new Blob to hold the downloaded file
-      const fileBlob: any = [];
-      while (true) {
-        const { done, value } = await reader!.read();
-        if (done) {
-          break;
-        }
-
-        receivedLength += value.length;
-        setProgress(receivedLength);
-
-        // Calculate download speed every 1 second
-        if (Date.now() - intervalStartTime >= 1000) {
-          const intervalEndTime = Date.now();
-          const durationInSeconds = (intervalEndTime - startTime) / 1000;
-          const bytesPerSecond = receivedLength / durationInSeconds;
-          const bitsPerSecond = bytesPerSecond * 8;
-          setDownloadSpeed(bitsPerSecond);
-          intervalStartTime = intervalEndTime;
-        }
-
-        fileBlob.push(value);
-      }
-      
-      // Create a URL for the blob
-      const url = window.URL.createObjectURL(new Blob(fileBlob));
-       // Create an anchor element to trigger the download
-       const link = document.createElement('a');
-       link.href = url;
-       link.setAttribute('download', object_name); // Set the filename
-       document.body.appendChild(link);
-       link.click();
- 
-       // Cleanup
-       window.URL.revokeObjectURL(url);
-       document.body.removeChild(link);
-    } catch (error) {
-      console.error('Error downloading file:', error);
-    }
-  }
-
   const handleFile = async () => {
-    // file[0].sender = userId;
-    // setFile(file);
     if (fileInput?.current?.files) {
       const file = fileInput?.current?.files[0]; // Assuming only one file is dropped
       const formData = new FormData();
@@ -125,19 +65,42 @@ const ChatInput = () => {
           method: "POST",
           body: formData,
         });
+        const now = new Date();
+        const symmetricKey: any = secureStorage.getItem(
+          `dm_${userId}:${receiverId}`
+        ) as string;
+      
 
         sendMessage(
           JSON.stringify({
-            sender: userId,
-            receiverId: receiverId,
-            receiverName: receiverUser?.username,
+            // senderId: userId,
+            // senderName: userName,
+            // receiverId: receiverId,
+            // receiverName: receiverUser?.username,
+            // channel: channel,
+            // fileName: (file as any).name,
+            // messageType: 1, //MessageType 1 for sending text, 2 for sending file
+            // chatMode: 1,
+            content: await encryptMessage((file as any).name, symmetricKey),
+            messageId: uuidv4(),
+            senderId: userId,
+            senderName: userName,
+            isFile: true,
             channel: channel,
-            fileName: (file as any).name,
-            messageType: 2, //MessageType 1 for sending text, 2 for sending file
-            chatMode: 2,
+            timestamp: Date.UTC(
+              now.getUTCFullYear(),
+              now.getUTCMonth(),
+              now.getUTCDate(),
+              now.getUTCHours(),
+              now.getUTCMinutes(),
+              now.getUTCSeconds()
+            ),
+            receiverName: receiverName,
+            receiverId: receiverId,
+            chatMode: chatMode,
+            messageType: 1, // MessageType 1 for sending text, 2 for sending file
           })
         );
-
       } catch (error) {
         console.error("An error occurred while uploading the file:", error);
       }
@@ -157,21 +120,25 @@ const ChatInput = () => {
     }
   }, [receiverId]);
 
+  useEffect(() => {
+  }, [receiverUser]);
+
   const sendTextMessage = useCallback(
     async (userInput: string) => {
       if (file !== null) {
-        sendMessage(
-          JSON.stringify({
-            sender: userId,
-            receiverId: receiverId,
-            receiverName: receiverUser?.username,
-            channel: channel,
-            fileName: (file[0] as any).name,
-            messageType: 2, //MessageType 1 for sending text, 2 for sending file
-            chatMode: 2,
-          })
-        );
-        sendMessage(file[0]);
+        // console.log("🚀 ~ file:", file)
+        // sendMessage(
+        //   JSON.stringify({
+        //     sender: userId,
+        //     receiverId: receiverId,
+        //     receiverName: receiverUser?.username,
+        //     channel: channel,
+        //     fileName: (file[0] as any).name,
+        //     messageType: 2, //MessageType 1 for sending text, 2 for sending file
+        //     chatMode: 2,
+        //   })
+        // );
+        // sendMessage(file[0]);
       } else {
         const now = new Date();
         if (chatMode === CHAT_MODE.DIRECT) {
@@ -205,12 +172,11 @@ const ChatInput = () => {
               now.getUTCMinutes(),
               now.getUTCSeconds()
             ),
-            receiverName: receiverUser?.username,
+            receiverName: receiverName,
             receiverId: receiverId,
             chatMode: chatMode,
             messageType: 1, // MessageType 1 for sending text, 2 for sending file
           };
-
           if (!keyExists) {
             // @ts-ignore
             message.aesKey = await encryptData(symmetricKey, receiverPK);
@@ -242,6 +208,7 @@ const ChatInput = () => {
             messageType: 1, // MessageType 1 for sending text, 2 for sending file
           };
           sendMessage(JSON.stringify(message));
+
           // let keyExists = false;
           // if(!secureStorage.getItem(`${channelName}_key`)) {
           //   // Decrypt the channel key from the appropriate message
@@ -289,10 +256,10 @@ const ChatInput = () => {
     );
     // console.log(usersToEncryptFor);
     let encryptedKeys: any = [];
-    for (const element of usersToEncryptFor) {
+    for (const user of usersToEncryptFor) {
       encryptedKeys.push({
-        userId: element.user_id,
-        enryptedKey: await encryptData(key, element.public_key),
+        userId: user.user_id,
+        enryptedKey: await encryptData(key, user.public_key),
       });
     }
     // console.log(secureStorage.getItem(`ch_${newChannelDetail.channelId}`) as string);
@@ -333,7 +300,6 @@ const ChatInput = () => {
           console.log(data);
           sendMessage(JSON.stringify(data));
         });
-        // console.log(encryptSymmetricKeysAndWelcomMessageForUsers(users, newChannelAction.channelMembers, "123"));
         console.log("This is the channel: " + JSON.stringify(newChannelAction));
       } else if (newChannelAction.channelAction === "delete") {
         sendMessage(
